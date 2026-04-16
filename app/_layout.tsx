@@ -118,11 +118,8 @@ const styles = StyleSheet.create({
   },
   desktopStyles: {
     width: "100%",
-    maxWidth: 800,
-    boxShadow: "0 0 40px rgba(0,0,0,0.05)",
-    marginVertical: 40,
-    borderRadius: 24,
-    overflow: "hidden",
+    maxWidth: 1000,
+    // Removidas as margens verticais que estavam a cortar a app
   },
   mobileStyles: {
     width: "100%",
