@@ -14,7 +14,7 @@ import { Stack, router, useSegments } from "expo-router";
 
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
-import { View, Platform, StyleSheet } from "react-native";
+import { useWindowDimensions, View, Platform, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -66,6 +66,7 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const { width } = useWindowDimensions();
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -83,13 +84,22 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) return null;
 
+  // On Web, we center the app in a column if the screen is large (Desktop)
+  // On smaller screens (Mobile), we fill 100% of the viewport.
+  const isDesktop = Platform.OS === "web" && width > 1000;
+
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <AppProvider>
-            <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#f3f4f6" }}>
-              <View style={styles.webContainer}>
+            <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#f8faf8" }}>
+              <View 
+                style={[
+                  styles.webContainer, 
+                  isDesktop ? styles.desktopStyles : styles.mobileStyles
+                ]}
+              >
                 <RootLayoutNav />
               </View>
             </GestureHandlerRootView>
@@ -103,11 +113,19 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   webContainer: {
     flex: 1,
-    width: "100%",
-    maxWidth: Platform.OS === "web" ? 800 : "100%",
     marginHorizontal: "auto",
     backgroundColor: "#fff",
+  },
+  desktopStyles: {
+    width: "100%",
+    maxWidth: 800,
+    boxShadow: "0 0 40px rgba(0,0,0,0.05)",
+    marginVertical: 40,
+    borderRadius: 24,
     overflow: "hidden",
-    ...(Platform.OS === "web" ? { boxShadow: "0 0 40px rgba(0,0,0,0.05)" } : {})
+  },
+  mobileStyles: {
+    width: "100%",
+    maxWidth: "100%",
   }
 });
