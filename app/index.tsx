@@ -19,8 +19,10 @@ const { width } = Dimensions.get("window");
 export default function WelcomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-
-  const { session, profile } = useApp();
+  const app = useApp();
+  
+  if (!app) return null;
+  const { session, profile } = app;
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;

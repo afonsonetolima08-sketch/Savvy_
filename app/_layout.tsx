@@ -36,7 +36,7 @@ function RootLayoutNav() {
     const isLandingPage = segments.length === 0 || (segments.length === 1 && segments[0] === '');
 
     // Se o user não tem sessão e não está no grupo de auth nem na landing page
-    if (!session && !inAuthGroup && !isLandingPage) {
+    if (!isLoading && !session && !inAuthGroup && !isLandingPage) {
       router.replace("/");
     } 
     // Se o user tem sessão e NÃO está na landing page
