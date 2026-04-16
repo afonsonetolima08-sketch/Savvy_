@@ -1,9 +1,7 @@
 {
-  "//": "Triggering new build to resolve stale commit issue",
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npx expo export -p web",
   "outputDirectory": "dist",
-  "framework": "create-react-app",
   "rewrites": [
     {
       "source": "/(.*)",
