@@ -9,7 +9,11 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- Delete the currently authenticated user from Supabase Auth
+  -- 1. Delete transactions
+  DELETE FROM public.transactions WHERE user_id = auth.uid();
+  -- 2. Delete profile
+  DELETE FROM public.profiles WHERE id = auth.uid();
+  -- 3. Delete auth user
   DELETE FROM auth.users WHERE id = auth.uid();
 END;
 $$;

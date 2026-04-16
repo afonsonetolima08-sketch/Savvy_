@@ -254,12 +254,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteAccount = useCallback(async (): Promise<{ error: string | null }> => {
     if (!session) return { error: "No session" };
     try {
-      // Delete all user data first
-      await supabase.from("transactions").delete().eq("user_id", session.user.id);
-      await supabase.from("profiles").delete().eq("id", session.user.id);
-      // Delete the auth user (requires service-role or a Postgres function; use admin API via RPC)
+      // Call the improved "all-in-one" PostgreSQL function
       const { error } = await supabase.rpc("delete_user");
       if (error) throw error;
+      
       await supabase.auth.signOut();
       return { error: null };
     } catch (e: any) {
