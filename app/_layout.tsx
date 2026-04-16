@@ -10,7 +10,8 @@ import {
   Caveat_700Bold,
 } from "@expo-google-fonts/caveat";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, router, useSegments, Head } from "expo-router";
+import { Stack, router, useSegments } from "expo-router";
+import Head from "expo-router/head";
 
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
