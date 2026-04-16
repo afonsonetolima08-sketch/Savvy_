@@ -149,7 +149,7 @@ export default function AddTransactionModal({ visible, onClose, editTransaction 
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>
             {editTransaction ? t.editRecord : t.newRecord}
           </Text>
-          <TouchableOpacity onPress={handleSave} hitSlop={8}>
+          <TouchableOpacity onPress={handleSave} hitSlop={8} dataSet={{ translate: 'no' }}>
             <Text style={[styles.saveBtn, { color: colors.primary }]}>{t.save}</Text>
           </TouchableOpacity>
         </View>
@@ -179,7 +179,7 @@ export default function AddTransactionModal({ visible, onClose, editTransaction 
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.mutedForeground }]}>{t.amountLabel}</Text>
+            <Text style={[styles.label, { color: "#065f46" }]} dataSet={{ translate: 'no' }}>{t.amountLabel}</Text>
             <View style={[styles.amountRow, { borderColor: colors.border, backgroundColor: colors.card }]}>
               <Text style={[styles.currencySign, { color: colors.primary }]}>{symbol}</Text>
               <TextInput
@@ -240,7 +240,7 @@ export default function AddTransactionModal({ visible, onClose, editTransaction 
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.mutedForeground }]}>{t.dateLabel}</Text>
+            <Text style={[styles.label, { color: "#065f46" }]} dataSet={{ translate: 'no' }}>{t.dateLabel}</Text>
             <TextInput
               style={[styles.textInput, { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground }]}
               value={date}

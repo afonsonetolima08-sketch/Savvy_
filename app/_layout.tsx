@@ -93,9 +93,6 @@ export default function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <AppProvider>
-            <Head>
-              <meta name="google" content="notranslate" />
-            </Head>
             <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#f8faf8" }}>
               <View style={styles.webContainer}>
                 <RootLayoutNav />
