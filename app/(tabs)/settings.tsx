@@ -69,6 +69,11 @@ export default function SettingsScreen() {
   const [accConfirmPassword, setAccConfirmPassword] = useState("");
   const [accLoading, setAccLoading] = useState(false);
   const [accError, setAccError] = useState("");
+  const [confirmModal, setConfirmModal] = useState<{ visible: boolean; type: "signout" | "delete" }>({
+    visible: false,
+    type: "signout",
+  });
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const currency = profile.currency || "EUR";
 
@@ -175,35 +180,35 @@ export default function SettingsScreen() {
   };
 
   const handleSignOut = () => {
-    Alert.alert(t.signOutTitle, t.signOutMsg, [
-      { text: t.cancel, style: "cancel" },
-      {
-        text: t.signOutConfirm,
-        style: "destructive",
-        onPress: async () => {
-          await signOut();
-          router.replace("/(auth)/login");
-        },
-      },
-    ]);
+    setConfirmModal({ visible: true, type: "signout" });
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(t.deleteAccountTitle, t.deleteAccountMsg, [
-      { text: t.cancel, style: "cancel" },
-      {
-        text: t.deleteAccountConfirm,
-        style: "destructive",
-        onPress: async () => {
-          const { error } = await deleteAccount();
-          if (error) {
-            Alert.alert("Erro", error);
-          } else {
-            router.replace("/(auth)/login");
-          }
-        },
-      },
-    ]);
+    setConfirmModal({ visible: true, type: "delete" });
+  };
+
+  const onConfirmAction = async () => {
+    const isDelete = confirmModal.type === "delete";
+    setIsConfirming(true);
+    try {
+      if (isDelete) {
+        const { error } = await deleteAccount();
+        if (error) {
+          Alert.alert("Erro", error);
+        } else {
+          setConfirmModal({ ...confirmModal, visible: false });
+          router.replace("/(auth)/login");
+        }
+      } else {
+        await signOut();
+        setConfirmModal({ ...confirmModal, visible: false });
+        router.replace("/(auth)/login");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsConfirming(false);
+    }
   };
 
   const objectiveLabels: Record<string, string> = {
@@ -761,6 +766,67 @@ export default function SettingsScreen() {
           placeholder="••••••••"
         />
       </AccountEditModal>
+
+      {/* ── Confirmation Modal (Sign Out / Delete) ── */}
+      <Modal
+        visible={confirmModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !isConfirming && setConfirmModal({ ...confirmModal, visible: false })}
+      >
+        <View style={styles.confirmationOverlay}>
+          <View style={[styles.confirmationCard, { backgroundColor: colors.background }]}>
+            <View
+              style={[
+                styles.confirmIcon,
+                { backgroundColor: confirmModal.type === "delete" ? "#FF3B3012" : "#FF9F0A12" },
+              ]}
+            >
+              <Feather
+                name={confirmModal.type === "delete" ? "trash-2" : "log-out"}
+                size={28}
+                color={confirmModal.type === "delete" ? "#FF3B30" : "#FF9F0A"}
+              />
+            </View>
+
+            <Text style={[styles.confirmTitle, { color: colors.foreground }]}>
+              {confirmModal.type === "delete" ? t.deleteAccountTitle : t.signOutTitle}
+            </Text>
+            <Text style={[styles.confirmMsg, { color: colors.mutedForeground }]}>
+              {confirmModal.type === "delete" ? t.deleteAccountMsg : t.signOutMsg}
+            </Text>
+
+            <View style={styles.confirmActions}>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { backgroundColor: colors.muted }]}
+                onPress={() => setConfirmModal({ ...confirmModal, visible: false })}
+                disabled={isConfirming}
+              >
+                <Text style={[styles.confirmBtnText, { color: colors.foreground }]}>
+                  {t.cancel}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.confirmBtn,
+                  { backgroundColor: confirmModal.type === "delete" ? "#FF3B30" : colors.primary },
+                ]}
+                onPress={onConfirmAction}
+                disabled={isConfirming}
+              >
+                {isConfirming ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={[styles.confirmBtnText, { color: "#fff" }]}>
+                    {confirmModal.type === "delete" ? t.deleteAccountConfirm : t.signOutConfirm}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
