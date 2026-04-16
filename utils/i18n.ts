@@ -49,7 +49,7 @@ const translations = {
     amountLabel: "VALOR",
     categoryLabel: "CATEGORIA",
     descriptionLabel: "DESCRIÇÃO",
-    dateLabel: "DATA",
+    dateLabel: "DADOS",
     descriptionPlaceholder: "Descrição (opcional)",
     invalidAmount: "Valor inválido",
     invalidAmountMsg: "Por favor insere um valor válido.",
