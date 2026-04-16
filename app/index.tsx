@@ -20,6 +20,8 @@ export default function WelcomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
+  const { session, profile } = useApp();
+
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -47,7 +49,15 @@ export default function WelcomeScreen() {
   }, []);
 
   const handleStart = () => {
-    router.push("/(auth)/login");
+    if (session) {
+      if (profile.onboardingCompleted) {
+        router.push("/(tabs)");
+      } else {
+        router.push("/onboarding");
+      }
+    } else {
+      router.push("/(auth)/login");
+    }
   };
 
   return (

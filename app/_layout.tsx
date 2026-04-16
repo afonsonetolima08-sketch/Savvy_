@@ -39,8 +39,8 @@ function RootLayoutNav() {
     if (!session && !inAuthGroup && !isLandingPage) {
       router.replace("/");
     } 
-    // Se o user tem sessão
-    else if (session) {
+    // Se o user tem sessão e NÃO está na landing page
+    else if (session && !isLandingPage) {
       const isResetPassword = segments[0] === "(auth)" && segments[1] === "reset-password";
       
       if (!isResetPassword) {
@@ -85,7 +85,6 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   // On Web, we center the app in a column if the screen is large (Desktop)
-  // On smaller screens (Mobile), we fill 100% of the viewport.
   const isDesktop = Platform.OS === "web" && width > 1000;
 
   return (
