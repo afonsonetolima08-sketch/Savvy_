@@ -9,6 +9,10 @@ if (Platform.OS !== "web") {
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
 
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("ERRO: Variáveis de ambiente EXPO_PUBLIC_SUPABASE_URL ou EXPO_PUBLIC_SUPABASE_ANON_KEY em falta! Verifica o teu .env ou o painel do Vercel.");
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
