@@ -93,12 +93,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <AppProvider>
             <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#f8faf8" }}>
-              <View 
-                style={[
-                  styles.webContainer, 
-                  isDesktop ? styles.desktopStyles : styles.mobileStyles
-                ]}
-              >
+              <View style={styles.webContainer}>
                 <RootLayoutNav />
               </View>
             </GestureHandlerRootView>
@@ -112,16 +107,9 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   webContainer: {
     flex: 1,
+    width: "100%",
+    maxWidth: Platform.OS === "web" ? 1000 : "100%",
     marginHorizontal: "auto",
     backgroundColor: "#fff",
-  },
-  desktopStyles: {
-    width: "100%",
-    maxWidth: 1000,
-    // Removidas as margens verticais que estavam a cortar a app
-  },
-  mobileStyles: {
-    width: "100%",
-    maxWidth: "100%",
   }
 });
