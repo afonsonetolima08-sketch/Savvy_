@@ -33,10 +33,11 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const isLandingPage = segments.length === 0 || (segments.length === 1 && segments[0] === '');
 
-    // Se o user não tem sessão e não está já na página de login
-    if (!session && !inAuthGroup) {
-      router.replace("/(auth)/login");
+    // Se o user não tem sessão e não está no grupo de auth nem na landing page
+    if (!session && !inAuthGroup && !isLandingPage) {
+      router.replace("/");
     } 
     // Se o user tem sessão
     else if (session) {
