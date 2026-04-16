@@ -21,6 +21,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider, useApp } from "@/context/AppContext";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -98,6 +99,7 @@ export default function RootLayout() {
                 <RootLayoutNav />
               </View>
             </GestureHandlerRootView>
+            {Platform.OS === "web" && <SpeedInsights />}
           </AppProvider>
         </QueryClientProvider>
       </ErrorBoundary>
