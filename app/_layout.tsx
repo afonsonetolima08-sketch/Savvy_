@@ -10,7 +10,7 @@ import {
   Caveat_700Bold,
 } from "@expo-google-fonts/caveat";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, router, useSegments } from "expo-router";
+import { Stack, router, useSegments, Head } from "expo-router";
 
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
@@ -92,6 +92,9 @@ export default function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <AppProvider>
+            <Head>
+              <meta name="google" content="notranslate" />
+            </Head>
             <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#f8faf8" }}>
               <View style={styles.webContainer}>
                 <RootLayoutNav />

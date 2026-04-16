@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_700Bold",
   },
   body: {
     flex: 1,
