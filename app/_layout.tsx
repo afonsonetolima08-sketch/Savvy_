@@ -21,6 +21,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider, useApp } from "@/context/AppContext";
+import { Analytics } from "@vercel/analytics/react";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -101,6 +102,7 @@ export default function RootLayout() {
           </AppProvider>
         </QueryClientProvider>
       </ErrorBoundary>
+      {Platform.OS === "web" && <Analytics />}
     </SafeAreaProvider>
   );
 }
