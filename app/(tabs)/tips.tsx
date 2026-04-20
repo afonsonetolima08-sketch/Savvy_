@@ -16,7 +16,7 @@ export default function TipsScreen() {
   const t = useT();
 
   const stats = getMonthlyStats(transactions);
-  const tips = generateTips(transactions, profile);
+  const tips = generateTips(transactions, profile, t);
   const savingsRate = stats.income > 0 ? ((stats.income - stats.expenses) / stats.income) * 100 : 0;
   const firstName = profile.name?.trim().split(" ")[0] || "";
 
