@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   Animated,
   Dimensions,
@@ -31,6 +31,16 @@ export default function WelcomeScreen() {
 
   if (!app) return null;
   const { session, profile } = app;
+
+  useEffect(() => {
+    if (containerWidth === 0 || activeIndex === slides.length - 1) return;
+    
+    const timer = setTimeout(() => {
+      flatListRef.current?.scrollToOffset({ offset: (activeIndex + 1) * containerWidth, animated: true });
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, [activeIndex, containerWidth]);
 
   const slides = [
     {
@@ -101,19 +111,25 @@ export default function WelcomeScreen() {
 
     const slideY = scrollX.interpolate({
       inputRange,
-      outputRange: [50, 0, 50],
+      outputRange: [80, 0, -80],
+      extrapolate: "clamp",
+    });
+
+    const slideX = scrollX.interpolate({
+      inputRange,
+      outputRange: [120, 0, -120],
       extrapolate: "clamp",
     });
 
     const slideOpacity = scrollX.interpolate({
       inputRange,
-      outputRange: [0, 1, 0],
+      outputRange: [-0.5, 1, -0.5],
       extrapolate: "clamp",
     });
 
     const scale = scrollX.interpolate({
       inputRange,
-      outputRange: [0.8, 1, 0.8],
+      outputRange: [0.5, 1, 0.5],
       extrapolate: "clamp",
     });
 
@@ -124,12 +140,24 @@ export default function WelcomeScreen() {
             styles.slideContent,
             {
               opacity: slideOpacity,
-              transform: [{ translateY: slideY }],
+              transform: [{ translateY: slideY }, { translateX: slideX }],
             },
           ]}
         >
-          <Animated.View style={[styles.iconContainer, { backgroundColor: item.color + "15", transform: [{ scale }] }]}>
-            <Feather name={item.icon as any} size={48} color={item.color} />
+          <Animated.View style={[
+            styles.iconContainer, 
+            { 
+              backgroundColor: item.color + "15", 
+              borderColor: item.color + "30",
+              transform: [{ scale }],
+              shadowColor: item.color,
+              shadowOffset: { width: 0, height: 12 },
+              shadowOpacity: 0.35,
+              shadowRadius: 24,
+              elevation: 10,
+            }
+          ]}>
+            <Feather name={item.icon as any} size={56} color={item.color} />
           </Animated.View>
           <Text style={[styles.title, { color: colors.foreground }]}>{item.title}</Text>
           <Text style={[styles.description, { color: colors.mutedForeground }]}>
@@ -255,12 +283,13 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 40,
+    marginBottom: 44,
+    borderWidth: 1,
   },
   title: {
     fontSize: 28,
