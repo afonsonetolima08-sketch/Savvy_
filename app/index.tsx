@@ -33,14 +33,21 @@ export default function WelcomeScreen() {
   const { session, profile } = app;
 
   useEffect(() => {
-    if (containerWidth === 0 || activeIndex === slides.length - 1) return;
+    if (containerWidth === 0) return;
     
-    const timer = setTimeout(() => {
-      flatListRef.current?.scrollToOffset({ offset: (activeIndex + 1) * containerWidth, animated: true });
-    }, 4000);
+    const timer = setInterval(() => {
+      setActiveIndex((current) => {
+        if (current < slides.length - 1) {
+          flatListRef.current?.scrollToOffset({ offset: (current + 1) * containerWidth, animated: true });
+          return current + 1;
+        }
+        clearInterval(timer);
+        return current;
+      });
+    }, 4500);
 
-    return () => clearTimeout(timer);
-  }, [activeIndex, containerWidth]);
+    return () => clearInterval(timer);
+  }, [containerWidth]);
 
   const slides = [
     {
@@ -93,8 +100,10 @@ export default function WelcomeScreen() {
   };
 
   const goNext = () => {
+    const nextIndex = activeIndex < slides.length - 1 ? activeIndex + 1 : activeIndex;
     if (activeIndex < slides.length - 1) {
-      flatListRef.current?.scrollToOffset({ offset: (activeIndex + 1) * containerWidth, animated: true });
+      setActiveIndex(nextIndex);
+      flatListRef.current?.scrollToOffset({ offset: nextIndex * containerWidth, animated: true });
     } else {
       handleStart();
     }
