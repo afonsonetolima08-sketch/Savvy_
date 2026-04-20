@@ -205,7 +205,7 @@ export default function DashboardScreen() {
                   />
                 </View>
                 <Text style={[styles.progressSub, { color: colors.mutedForeground }]}>
-                  {formatExact(stats.expenses)} de {formatExact(profile.monthlyIncome)}
+                  {formatExact(stats.expenses)} {t.ofLabel} {formatExact(profile.monthlyIncome)}
                 </Text>
               </View>
             </>

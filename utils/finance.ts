@@ -1,21 +1,5 @@
 import { Transaction, TransactionCategory, UserProfile } from "@/context/AppContext";
-
-export const CATEGORY_LABELS: Record<TransactionCategory, string> = {
-  salary: "Salário",
-  freelance: "Freelance",
-  investment: "Investimento",
-  gift: "Presente",
-  food: "Alimentação",
-  housing: "Habitação",
-  transport: "Transporte",
-  health: "Saúde",
-  entertainment: "Lazer",
-  shopping: "Compras",
-  education: "Educação",
-  utilities: "Serviços",
-  travel: "Viagem",
-  other: "Outro",
-};
+import { Translations } from "./i18n";
 
 export const CATEGORY_ICONS: Record<TransactionCategory, string> = {
   salary: "briefcase",
@@ -146,14 +130,16 @@ export interface MonthData {
   count: number;
 }
 
-export function getLast6MonthsData(transactions: Transaction[]): MonthData[] {
+export function getLast6MonthsData(transactions: Transaction[], language = "pt-PT"): MonthData[] {
   const result: MonthData[] = [];
+  const locale = language === "pt" ? "pt-PT" : language === "en" ? "en-US" : language === "es" ? "es-ES" : language === "fr" ? "fr-FR" : "pt-PT";
+  
   for (let i = -5; i <= 0; i++) {
     const now = new Date();
     const target = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const stats = getMonthlyStats(transactions, i);
-    const monthName = target.toLocaleDateString("pt-PT", { month: "short" });
-    const fullName = target.toLocaleDateString("pt-PT", { month: "long", year: "numeric" });
+    const monthName = target.toLocaleDateString(locale, { month: "short" });
+    const fullName = target.toLocaleDateString(locale, { month: "long", year: "numeric" });
     result.push({
       key: `${target.getFullYear()}-${target.getMonth()}`,
       label: fullName.charAt(0).toUpperCase() + fullName.slice(1),
@@ -179,7 +165,7 @@ export function getAllTimeCategoryBreakdown(transactions: Transaction[]): Record
   return getCategoryBreakdown(expenses);
 }
 
-export function generateTips(transactions: Transaction[], profile: UserProfile): string[] {
+export function generateTips(transactions: Transaction[], profile: UserProfile, t: Translations): string[] {
   const tips: string[] = [];
   const { income, expenses } = getMonthlyStats(transactions);
   const expTxs = getMonthTransactions(transactions).filter((t) => t.type === "expense");
@@ -188,60 +174,55 @@ export function generateTips(transactions: Transaction[], profile: UserProfile):
   const firstName = profile.name?.split(" ")[0] || "";
 
   if (profile.mainObjective === "save" && savingsRate < 20) {
-    tips.push(`${firstName ? firstName + ", t" : "T"}enta poupar pelo menos 20% do teu rendimento mensalmente para atingir os teus objetivos.`);
+    tips.push(t.tipSavingsTarget.replace("{name}", firstName ? firstName + ", " : ""));
   }
 
   if (income > 0 && expenses > income * 0.8) {
-    tips.push("Os teus gastos estão acima de 80% do teu rendimento. Considera reduzir despesas não essenciais.");
+    tips.push(t.tipHighExpenses);
   }
 
   const topCategory = Object.entries(breakdown).sort(([, a], [, b]) => b - a)[0];
   if (topCategory && income > 0 && topCategory[1] > income * 0.3) {
-    const catLabel = CATEGORY_LABELS[topCategory[0] as TransactionCategory];
-    tips.push(`A tua categoria de maior gasto é ${catLabel}. Representa ${Math.round((topCategory[1] / income) * 100)}% do teu rendimento.`);
+    const catKey = `cat${(topCategory[0] as string).charAt(0).toUpperCase() + (topCategory[0] as string).slice(1)}` as keyof Translations;
+    const catLabel = t[catKey] || topCategory[0];
+    tips.push(t.tipTopCategory
+      .replace("{category}", String(catLabel))
+      .replace("{percent}", String(Math.round((topCategory[1] / income) * 100))));
   }
 
   if (profile.debts > 0) {
-    tips.push("Tens dívidas em aberto. Prioriza o pagamento das dívidas com juros mais altos primeiro.");
+    tips.push(t.tipDebtPriority);
   }
 
   if (breakdown["entertainment"] && income > 0 && breakdown["entertainment"] > income * 0.15) {
-    tips.push("Os gastos com lazer estão elevados. Considera definir um limite mensal para entretenimento.");
+    tips.push(t.tipEntertainmentLimit);
   }
 
   if (savingsRate > 30) {
-    tips.push("Excelente! Estás a poupar mais de 30% do teu rendimento. Considera investir o excedente.");
+    tips.push(t.tipSavingsSuccess);
   }
 
   if (profile.investmentHorizon === "long" && expenses < income) {
-    tips.push("Com um horizonte de investimento longo, os teus excedentes mensais podem crescer significativamente com investimentos regulares.");
+    tips.push(t.tipLongHorizon);
   }
 
   if (tips.length === 0) {
-    tips.push("Regista as tuas receitas e despesas regularmente para receberes dicas personalizadas.");
-    tips.push("Define um orçamento mensal para cada categoria e acompanha o progresso.");
+    tips.push(t.tipNoData1);
+    tips.push(t.tipNoData2);
   }
 
   return tips.slice(0, 4);
 }
 
-export function formatDate(dateStr: string): string {
+export function formatDate(dateStr: string, language = "pt-PT"): string {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" });
+  const locale = language === "pt" ? "pt-PT" : language === "en" ? "en-US" : language === "es" ? "es-ES" : language === "fr" ? "fr-FR" : "pt-PT";
+  return d.toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export function getMonthName(offset = 0): string {
+export function getMonthName(offset = 0, language = "pt-PT"): string {
   const d = new Date();
   d.setMonth(d.getMonth() + offset);
-  return d.toLocaleDateString("pt-PT", { month: "long", year: "numeric" });
-}
-
-export function getGreeting(name: string): string {
-  const hour = new Date().getHours();
-  const firstName = name?.trim().split(" ")[0] || "";
-  let base: string;
-  if (hour < 12) base = "Bom dia";
-  else if (hour < 19) base = "Boa tarde";
-  else base = "Boa noite";
-  return firstName ? `${base}, ${firstName}` : base;
+  const locale = language === "pt" ? "pt-PT" : language === "en" ? "en-US" : language === "es" ? "es-ES" : language === "fr" ? "fr-FR" : "pt-PT";
+  return d.toLocaleDateString(locale, { month: "long", year: "numeric" });
 }

@@ -10,10 +10,14 @@ import { useT } from "@/hooks/useTranslations";
 interface TransactionCardProps {
   transaction: Transaction;
   onPress?: () => void;
+  onLongPress?: () => void;
+  delayLongPress?: number;
+  onDelete?: () => void;
 }
 
-export default function TransactionCard({ transaction, onPress }: TransactionCardProps) {
+export default function TransactionCard({ transaction, onPress, onLongPress, delayLongPress, onDelete }: TransactionCardProps) {
   const colors = useColors();
+  const { profile } = useApp();
   const { format } = useCurrency();
   const t = useT();
   const isIncome = transaction.type === "income";
@@ -43,6 +47,8 @@ export default function TransactionCard({ transaction, onPress }: TransactionCar
   return (
     <TouchableOpacity
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={delayLongPress}
       activeOpacity={0.75}
       style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
     >
@@ -54,12 +60,26 @@ export default function TransactionCard({ transaction, onPress }: TransactionCar
           {transaction.description || getCategoryLabel(transaction.category)}
         </Text>
         <Text style={[styles.date, { color: colors.mutedForeground }]}>
-          {getCategoryLabel(transaction.category)} · {formatDate(transaction.date)}
+          {getCategoryLabel(transaction.category)} · {formatDate(transaction.date, profile.language)}
         </Text>
       </View>
-      <Text style={[styles.amount, { color: isIncome ? colors.income : colors.expense }]}>
-        {isIncome ? "+" : "-"}{format(transaction.amount)}
-      </Text>
+      <View style={styles.rightContent}>
+        <Text style={[styles.amount, { color: isIncome ? colors.income : colors.expense }]}>
+          {isIncome ? "+" : "-"}{format(transaction.amount)}
+        </Text>
+        {onDelete && (
+          <TouchableOpacity
+            onPress={(e) => {
+              if (e && e.stopPropagation) e.stopPropagation();
+              onDelete();
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.deleteBtn}
+          >
+            <Feather name="trash-2" size={18} color="#ef4444" />
+          </TouchableOpacity>
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -95,5 +115,13 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 15,
     fontFamily: "Inter_700Bold",
+  },
+  rightContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  deleteBtn: {
+    padding: 4,
   },
 });

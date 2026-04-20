@@ -95,7 +95,8 @@ export default function TransactionsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 80 + bottomPadding, gap: 8 }}
         renderItem={({ item }) => (
-          <TouchableOpacity
+          <TransactionCard
+            transaction={item}
             onLongPress={() => handleDelete(item)}
             delayLongPress={500}
             onPress={() => {
@@ -103,10 +104,8 @@ export default function TransactionsScreen() {
               setEditTx(item);
               setShowModal(true);
             }}
-            activeOpacity={1}
-          >
-            <TransactionCard transaction={item} />
-          </TouchableOpacity>
+            onDelete={() => handleDelete(item)}
+          />
         )}
         ListEmptyComponent={
           <View style={[styles.emptyState, { backgroundColor: colors.card, borderColor: colors.border }]}>

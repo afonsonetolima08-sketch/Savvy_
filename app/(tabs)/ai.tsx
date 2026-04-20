@@ -96,24 +96,32 @@ export default function AIScreen() {
         const lower = trimmed.toLowerCase();
         let reply = "";
         
-        if (lower.includes("poupar") || lower.includes("save") || lower.includes("poupança")) {
-           reply = `Com uma taxa de poupança atual de ${financialContext.savingsRate.toFixed(1)}%, poderias otimizar cortando em gastos não essenciais. O teu objetivo principal é "${financialContext.objective || "não definido"}". Tens alguma categoria específica onde sentes que gastas demasiado?`;
-        } else if (lower.includes("gasto") || lower.includes("spend") || lower.includes("expense") || lower.includes("análise") || lower.includes("analisa")) {
-           reply = `Este mês já gastaste ${financialContext.currency}${financialContext.expenses.toFixed(2)}. Em comparação com os teus ganhos (${financialContext.currency}${financialContext.income.toFixed(2)}), o teu saldo livre é de ${financialContext.currency}${financialContext.balance.toFixed(2)}. Posso ajudar a estabelecer um limite mensal se precisares!`;
+        if (lower.includes("poupar") || lower.includes("save") || lower.includes("poupança") || lower.includes("épargner") || lower.includes("ahorrar")) {
+           reply = t.aiResponseSaving
+             .replace("{rate}", financialContext.savingsRate.toFixed(1))
+             .replace("{objective}", financialContext.objective || t.notDefined);
+        } else if (lower.includes("gasto") || lower.includes("spend") || lower.includes("expense") || lower.includes("análise") || lower.includes("analisa") || lower.includes("dépense")) {
+           reply = t.aiResponseSpending
+             .replace("{currency}", financialContext.currency)
+             .replace("{expenses}", financialContext.expenses.toFixed(2))
+             .replace("{income}", financialContext.income.toFixed(2))
+             .replace("{balance}", financialContext.balance.toFixed(2));
         } else if (lower.includes("investir") || lower.includes("invest") || lower.includes("investimento")) {
            if (financialContext.patrimony > 1000) {
-             reply = `Tendo um património de ${financialContext.currency}${financialContext.patrimony.toFixed(2)}, começar a investir parte do teu capital em ETFs ou contas-poupança de alto rendimento pode ajudar a bater a inflação. Qual é a tua tolerância ao risco?`;
+             reply = t.aiResponseInvesting
+               .replace("{currency}", financialContext.currency)
+               .replace("{patrimony}", financialContext.patrimony.toFixed(2));
            } else {
-             reply = `Para começar a investir, o ideal é construir primeiro um fundo de emergência. Tenta poupar cerca de 3 a 6 meses das tuas despesas habituais antes de entrares no mercado financeiro.`;
+             reply = t.aiResponseInvestingStart;
            }
-        } else if (lower.includes("dívida") || lower.includes("debt") || lower.includes("reduzir") || lower.includes("devo")) {
-           reply = `A melhor estratégia para reduzir dívidas é pagar primeiro a que tem a taxa de juro mais alta (método Avalanche) ou liquidar a de menor valor primeiro para ganhar motivação (método Bola de Neve).`;
+        } else if (lower.includes("dívida") || lower.includes("debt") || lower.includes("reduzir") || lower.includes("devo") || lower.includes("dette")) {
+           reply = t.aiResponseDebt;
         } else {
            const defaults = [
-             `Essa é uma excelente perspetiva. Com um saldo limpo de ${financialContext.currency}${financialContext.balance.toFixed(2)} este mês, estás no caminho certo para os teus objetivos reais.`,
-             "Posso ajudar com dicas de poupança, análise do teu orçamento ou estratégias de planeamento a longo prazo. O que preferes explorar mais com base nos teus dados?",
-             `Notei que queres perceber mais sobre finanças. Podes sempre aplicar a regra 50/30/20 ao teu orçamento: 50% necessidades, 30% desejos e 20% para a tua poupança futura!`,
-             "Não tenho uma resposta matemática exata para isso, mas como o teu Assistente Pessoal sei que a chave do sucesso financeiro é a consistência no registo de cada transação no painel de estatísticas!",
+             t.aiResponseDefault1.replace("{currency}", financialContext.currency).replace("{balance}", financialContext.balance.toFixed(2)),
+             t.aiResponseDefault2,
+             t.aiResponseDefault3,
+             t.aiResponseDefault4,
            ];
            reply = defaults[Math.floor(Math.random() * defaults.length)];
         }
@@ -121,7 +129,7 @@ export default function AIScreen() {
         const assistantMsg: Message = { id: makeId(), role: "assistant", content: reply };
         setMessages((prev) => [...prev, assistantMsg]);
         setIsTyping(false);
-      }, 1500); // 1.5 second simulated think time
+      }, 1500); 
       
     },
     [isTyping, financialContext]

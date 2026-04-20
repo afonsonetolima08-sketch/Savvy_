@@ -93,11 +93,11 @@ function BarChart({
       <View style={styles.legendRow}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.income }]} />
-          <Text style={[styles.legendText, { color: colors.mutedForeground }]}>Income</Text>
+          <Text style={[styles.legendText, { color: colors.mutedForeground }]}>{t.income}</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.expense }]} />
-          <Text style={[styles.legendText, { color: colors.mutedForeground }]}>Expenses</Text>
+          <Text style={[styles.legendText, { color: colors.mutedForeground }]}>{t.expenses}</Text>
         </View>
       </View>
     </View>
@@ -107,7 +107,7 @@ function BarChart({
 export default function AnalyticsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { transactions } = useApp();
+  const { transactions, profile } = useApp();
   const { format, convert } = useCurrency();
   const t = useT();
 
@@ -115,7 +115,7 @@ export default function AnalyticsScreen() {
   const [selectedBarKey, setSelectedBarKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"monthly" | "categories">("monthly");
 
-  const last6 = getLast6MonthsData(transactions);
+  const last6 = getLast6MonthsData(transactions, profile.language);
   const { best, worst } = getBestAndWorstMonths(last6);
 
   const selectedMonth = selectedBarKey
@@ -264,7 +264,7 @@ export default function AnalyticsScreen() {
                   <Feather name="chevron-left" size={20} color={colors.foreground} />
                 </TouchableOpacity>
                 <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-                  {getMonthName(monthOffset).charAt(0).toUpperCase() + getMonthName(monthOffset).slice(1)}
+                  {getMonthName(monthOffset, profile.language).charAt(0).toUpperCase() + getMonthName(monthOffset, profile.language).slice(1)}
                 </Text>
                 <TouchableOpacity
                   onPress={() => setMonthOffset((o) => Math.min(0, o + 1))}
