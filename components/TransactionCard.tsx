@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "@/hooks/useColors";
-import { Transaction, TransactionCategory } from "@/context/AppContext";
+import { Transaction, TransactionCategory, useApp } from "@/context/AppContext";
 import { CATEGORY_COLORS, CATEGORY_ICONS, formatDate } from "@/utils/finance";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useT } from "@/hooks/useTranslations";
