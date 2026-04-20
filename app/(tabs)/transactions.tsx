@@ -29,14 +29,24 @@ export default function TransactionsScreen() {
   const filtered = transactions.filter((tx) => filter === "all" || tx.type === filter);
 
   const handleDelete = (tx: Transaction) => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(`${t.deleteTransactionTitle}\n\n${t.deleteConfirm}`);
+      if (confirmed) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        deleteTransaction(tx.id);
+      }
+      return;
+    }
+
     Alert.alert(t.deleteTransactionTitle, t.deleteConfirm, [
       { text: t.cancel, style: "cancel" },
       {
         text: t.delete,
         style: "destructive",
         onPress: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
           deleteTransaction(tx.id);
         },
       },
