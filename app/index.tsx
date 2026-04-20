@@ -11,7 +11,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -19,7 +18,7 @@ import { useApp } from "@/context/AppContext";
 import { useT } from "@/hooks/useTranslations";
 
 export default function WelcomeScreen() {
-  const { width } = useWindowDimensions();
+  const [containerWidth, setContainerWidth] = useState(0);
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const app = useApp();
@@ -85,7 +84,7 @@ export default function WelcomeScreen() {
 
   const goNext = () => {
     if (activeIndex < slides.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
+      flatListRef.current?.scrollToOffset({ offset: (activeIndex + 1) * containerWidth, animated: true });
     } else {
       handleStart();
     }
@@ -98,7 +97,7 @@ export default function WelcomeScreen() {
   }).current;
 
   const renderItem = ({ item, index }: { item: any; index: number }) => {
-    const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+    const inputRange = [(index - 1) * containerWidth, index * containerWidth, (index + 1) * containerWidth];
 
     const slideY = scrollX.interpolate({
       inputRange,
@@ -119,7 +118,7 @@ export default function WelcomeScreen() {
     });
 
     return (
-      <View style={[styles.slide, { width }]}>
+      <View style={[styles.slide, { width: containerWidth }]}>
         <Animated.View
           style={[
             styles.slideContent,
@@ -142,7 +141,10 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+    >
       <LinearGradient colors={[colors.primary + "10", colors.background]} style={StyleSheet.absoluteFill} />
 
       {/* Header with Skip Button */}
@@ -156,28 +158,32 @@ export default function WelcomeScreen() {
         )}
       </View>
 
-      <Animated.FlatList
-        ref={flatListRef}
-        data={slides}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        pagingEnabled
-        bounces={false}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-          useNativeDriver: true,
-        })}
-        onViewableItemsChanged={viewableItemsChanged}
-        viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
-        scrollEventThrottle={16}
-      />
+      {containerWidth > 0 ? (
+        <Animated.FlatList
+          ref={flatListRef}
+          data={slides}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          pagingEnabled
+          bounces={false}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
+            useNativeDriver: true,
+          })}
+          onViewableItemsChanged={viewableItemsChanged}
+          viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
+          scrollEventThrottle={16}
+        />
+      ) : (
+        <View style={{ flex: 1 }} />
+      )}
 
       {/* Footer Area with Dots and Button */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) + 40 }]}>
         <View style={styles.pagination}>
           {slides.map((_, idx) => {
-            const inputRange = [(idx - 1) * width, idx * width, (idx + 1) * width];
+            const inputRange = [(idx - 1) * containerWidth, idx * containerWidth, (idx + 1) * containerWidth];
 
             const dotWidth = scrollX.interpolate({
               inputRange,
