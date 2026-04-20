@@ -11,15 +11,15 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
 import { useT } from "@/hooks/useTranslations";
 
-const { width, height } = Dimensions.get("window");
-
 export default function WelcomeScreen() {
+  const { width } = useWindowDimensions();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const app = useApp();
@@ -146,7 +146,7 @@ export default function WelcomeScreen() {
       <LinearGradient colors={[colors.primary + "10", colors.background]} style={StyleSheet.absoluteFill} />
 
       {/* Header with Skip Button */}
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) + 20 }]}>
         {activeIndex < slides.length - 1 ? (
           <TouchableOpacity onPress={handleStart} style={styles.skipBtn}>
             <Text style={[styles.skipText, { color: colors.mutedForeground }]}>{t.skip}</Text>
@@ -174,7 +174,7 @@ export default function WelcomeScreen() {
       />
 
       {/* Footer Area with Dots and Button */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 40 }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) + 40 }]}>
         <View style={styles.pagination}>
           {slides.map((_, idx) => {
             const inputRange = [(idx - 1) * width, idx * width, (idx + 1) * width];
