@@ -35,6 +35,7 @@ function BarChart({
   onSelect: (key: string) => void;
 }) {
   const colors = useColors();
+  const t = useT();
   const maxVal = Math.max(...data.map((d) => Math.max(d.income, d.expenses)), 1);
   const barAreaHeight = 100;
 
