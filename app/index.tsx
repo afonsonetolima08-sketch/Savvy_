@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
   Image,
+  StatusBar,
 } from "react-native";
 import Animated, {
   FadeInDown,
@@ -20,6 +21,9 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
+  interpolate,
+  Extrapolate,
+  interpolateColor,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
@@ -44,16 +48,13 @@ export default function WelcomeScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const scrollX = useSharedValue(0);
 
-  // Animation values
+  // Animation for the button
   const buttonScale = useSharedValue(1);
 
   useEffect(() => {
-    buttonScale.value = withRepeat(
-      withTiming(1.05, { duration: 1200 }),
-      -1,
-      true
-    );
+    buttonScale.value = withRepeat(withTiming(1.06, { duration: 1500 }), -1, true);
   }, []);
 
   const animatedButtonStyle = useAnimatedStyle(() => ({
@@ -65,11 +66,8 @@ export default function WelcomeScreen() {
 
   const handleStart = () => {
     if (session) {
-      if (profile.onboardingCompleted) {
-        router.push("/(tabs)");
-      } else {
-        router.push("/onboarding");
-      }
+      if (profile.onboardingCompleted) router.push("/(tabs)");
+      else router.push("/onboarding");
     } else {
       router.push("/(auth)/login");
     }
@@ -80,21 +78,24 @@ export default function WelcomeScreen() {
       id: "1", 
       title: t.introSlide1Title, 
       desc: t.introSlide1Desc,
-      icon: "cpu",
+      icon: "zap",
+      color: "#10b981",
       image: require("@/assets/images/hero_financial.png")
     },
     { 
       id: "2", 
       title: t.introSlide2Title, 
       desc: t.introSlide2Desc,
-      icon: "message-square",
+      icon: "cpu",
+      color: "#34d399",
       image: require("@/assets/images/hero_financial.png")
     },
     { 
       id: "3", 
       title: t.introSlide3Title, 
       desc: t.introSlide3Desc,
-      icon: "globe",
+      icon: "shield",
+      color: "#059669",
       image: require("@/assets/images/hero_financial.png")
     },
     { 
@@ -102,13 +103,15 @@ export default function WelcomeScreen() {
       title: t.introSlide4Title, 
       desc: t.introSlide4Desc,
       icon: "bar-chart-2",
+      color: "#10b981",
       image: require("@/assets/images/hero_financial.png")
     },
     { 
       id: "5", 
       title: t.introSlide5Title, 
       desc: t.introSlide5Desc,
-      icon: "cloud",
+      icon: "globe",
+      color: "#34d399",
       image: require("@/assets/images/hero_financial.png")
     },
   ];
@@ -121,61 +124,55 @@ export default function WelcomeScreen() {
         return next;
       });
     }, FAST_SLIDE_DURATION);
-    
     return () => clearInterval(timer);
   }, [slides.length]);
 
-  const renderItem = ({ item, index }: { item: typeof slides[0], index: number }) => (
-    <View style={styles.slide}>
-      <View style={styles.contentContainer}>
-        <View style={styles.heroImageContainer}>
-          <Image 
-            source={item.image}
-            style={styles.heroImage}
-            resizeMode="cover"
-          />
-          <LinearGradient
-            colors={["transparent", COLORS.forest]}
-            style={styles.heroOverlay}
-          />
-        </View>
+  const onScroll = (event: any) => {
+    scrollX.value = event.nativeEvent.contentOffset.x;
+  };
 
-        <View style={styles.textContainer}>
-          <Animated.View 
-            entering={FadeInDown.delay(200).duration(800)}
-            style={styles.taglineContainer}
-          >
-            <BlurView intensity={30} tint="light" style={styles.taglineBadge}>
-              <View style={styles.taglineRow}>
-                <Feather name={item.icon as any} size={14} color={COLORS.brightMint} />
-                <Text style={styles.taglineText}>SAVVY FINANCE • {item.title.toUpperCase()}</Text>
-              </View>
-            </BlurView>
-          </Animated.View>
+  const renderItem = ({ item, index }: { item: typeof slides[0], index: number }) => {
+    return (
+      <View style={styles.slide}>
+        <View style={styles.slideContent}>
+           <Animated.View 
+              entering={FadeInDown.delay(200).duration(1000)}
+              style={styles.imageWrap}
+            >
+              <Image source={item.image} style={styles.image} resizeMode="cover" />
+              <LinearGradient colors={["transparent", COLORS.forest]} style={styles.overlay} />
+           </Animated.View>
 
-          <Animated.Text 
-            entering={FadeInUp.delay(400).duration(800)}
-            style={styles.title}
-          >
-            {item.title}
-          </Animated.Text>
-          
-          <Animated.Text 
-            entering={FadeInUp.delay(600).duration(800)}
-            style={styles.subtitle}
-          >
-            {item.desc}
-          </Animated.Text>
+           <View style={styles.textWrap}>
+              <Animated.View 
+                entering={FadeInUp.delay(400).duration(800)}
+                style={styles.badgeContainer}
+              >
+                <BlurView intensity={25} tint="light" style={styles.badge}>
+                    <Feather name={item.icon as any} size={14} color={COLORS.brightMint} />
+                    <Text style={styles.badgeText}>SAVVY • {item.title.split(" ")[0].toUpperCase()}</Text>
+                </BlurView>
+              </Animated.View>
+
+              <Animated.Text entering={FadeInUp.delay(600).duration(1000)} style={styles.title}>
+                {item.title}
+              </Animated.Text>
+              
+              <Animated.Text entering={FadeInUp.delay(800).duration(1000)} style={styles.subtitle}>
+                {item.desc}
+              </Animated.Text>
+           </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[COLORS.forest, COLORS.deepEmerald]}
-        style={StyleSheet.absoluteFill}
+      <StatusBar barStyle="light-content" />
+      <LinearGradient 
+        colors={[COLORS.forest, COLORS.deepEmerald, COLORS.forest]} 
+        style={StyleSheet.absoluteFill} 
       />
       
       <FlatList
@@ -187,7 +184,12 @@ export default function WelcomeScreen() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         scrollEnabled={false}
-        onIndexChanged={(index) => setActiveIndex(index)}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+          setActiveIndex(index);
+        }}
         getItemLayout={(_, index) => ({
           length: SCREEN_WIDTH,
           offset: SCREEN_WIDTH * index,
@@ -195,37 +197,32 @@ export default function WelcomeScreen() {
         })}
       />
 
-      {/* PERSISTENT CTA BUTTON */}
-      <Animated.View 
-        entering={FadeInUp.delay(1000).duration(800)}
-        style={[styles.floatingCTAContainer, { paddingBottom: Math.max(insets.bottom, 24) }]}
-      >
-        <TouchableOpacity
-          style={styles.ctaButtonContainer}
-          onPress={handleStart}
-          activeOpacity={0.85}
-        >
-          <Animated.View style={[styles.ctaButton, animatedButtonStyle]}>
-            <Text style={styles.ctaText}>{t.startNow}</Text>
-            <Feather name="arrow-right" size={22} color={COLORS.white} />
-          </Animated.View>
-        </TouchableOpacity>
-      </Animated.View>
+      <View style={[styles.staticOverlay, { bottom: Math.max(insets.bottom, 40) }]}>
+         <View style={styles.dotsRow}>
+            {slides.map((_, i) => (
+              <View 
+                key={i} 
+                style={[
+                  styles.dot, 
+                  { 
+                    backgroundColor: activeIndex === i ? COLORS.neonEmerald : "rgba(255,255,255,0.2)",
+                    width: activeIndex === i ? 24 : 8 
+                  }
+                ]} 
+              />
+            ))}
+         </View>
 
-      {/* DOT INDICATORS */}
-      <View style={[styles.dotsContainer, { bottom: Math.max(insets.bottom, 24) + 90 }]}>
-        {slides.map((_, i) => (
-          <View 
-            key={i} 
-            style={[
-              styles.dot, 
-              { 
-                backgroundColor: i === activeIndex ? COLORS.neonEmerald : "rgba(255,255,255,0.2)",
-                width: i === activeIndex ? 24 : 8,
-              }
-            ]} 
-          />
-        ))}
+         <TouchableOpacity 
+            onPress={handleStart} 
+            activeOpacity={0.8}
+            style={styles.ctaWrapper}
+         >
+            <Animated.View style={[styles.ctaButton, animatedButtonStyle]}>
+               <Text style={styles.ctaText}>{t.startNow}</Text>
+               <Feather name="arrow-right" size={22} color={COLORS.white} />
+            </Animated.View>
+         </TouchableOpacity>
       </View>
     </View>
   );
@@ -239,74 +236,69 @@ const styles = StyleSheet.create({
   slide: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
-    paddingHorizontal: 24,
-    justifyContent: "center", // V-Center slides properly
   },
-  contentContainer: {
+  slideContent: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
-    transform: [{ translateY: -40 }], // Slight upward shift to balance eye-level
+    paddingHorizontal: 30,
   },
-  heroImageContainer: {
+  imageWrap: {
     width: "100%",
-    aspectRatio: 1.2,
-    borderRadius: 32,
-    overflow: "hidden",
+    height: SCREEN_HEIGHT * 0.42,
+    borderRadius: 40,
     backgroundColor: COLORS.deepEmerald,
+    overflow: "hidden",
     marginBottom: 40,
+    marginTop: -20,
     shadowColor: COLORS.neonEmerald,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 8,
   },
-  heroImage: {
+  image: {
     width: "100%",
     height: "100%",
   },
-  heroOverlay: {
+  overlay: {
     ...StyleSheet.absoluteFillObject,
   },
-  textContainer: {
+  textWrap: {
     alignItems: "center",
     width: "100%",
   },
-  taglineContainer: {
+  badgeContainer: {
     marginBottom: 24,
   },
-  taglineBadge: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
-  },
-  taglineRow: {
+  badge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.3)",
   },
-  taglineText: {
+  badgeText: {
     color: COLORS.brightMint,
     fontSize: 11,
     fontFamily: "Outfit_700Bold",
-    letterSpacing: 2,
-    textTransform: "uppercase",
+    letterSpacing: 2.5,
   },
   title: {
     color: COLORS.white,
-    fontSize: 42,
+    fontSize: 44,
     fontFamily: "Outfit_900Black",
     textAlign: "center",
+    lineHeight: 52,
     letterSpacing: -1.5,
-    lineHeight: 50,
     marginBottom: 20,
     textShadowColor: "rgba(16, 185, 129, 0.4)",
     textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 10,
+    textShadowRadius: 15,
   },
   subtitle: {
     color: COLORS.textMuted,
@@ -314,48 +306,50 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     textAlign: "center",
     lineHeight: 28,
-    paddingHorizontal: 16,
-    opacity: 0.9,
+    paddingHorizontal: 15,
+    opacity: 0.95,
   },
-  floatingCTAContainer: {
+  staticOverlay: {
     position: "absolute",
-    bottom: 0,
     left: 0,
     right: 0,
     alignItems: "center",
+    gap: 32,
   },
-  ctaButtonContainer: {
-    shadowColor: COLORS.neonEmerald,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 25,
-    elevation: 8,
-  },
-  ctaButton: {
-    backgroundColor: COLORS.neonEmerald,
-    paddingVertical: 20,
-    paddingHorizontal: 48,
-    borderRadius: 40,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    minWidth: 260,
-    justifyContent: "center",
-  },
-  ctaText: {
-    color: COLORS.white,
-    fontSize: 20,
-    fontFamily: "Outfit_700Bold",
-  },
-  dotsContainer: {
-    position: "absolute",
+  dotsRow: {
     flexDirection: "row",
     gap: 8,
-    alignSelf: "center",
+    alignItems: "center",
   },
   dot: {
     height: 8,
     borderRadius: 4,
     transition: "all 0.3s ease",
   },
+  ctaWrapper: {
+    width: "100%",
+    alignItems: "center",
+    paddingHorizontal: 30,
+  },
+  ctaButton: {
+    backgroundColor: COLORS.neonEmerald,
+    width: "100%",
+    maxWidth: 320,
+    paddingVertical: 22,
+    borderRadius: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+    shadowColor: COLORS.neonEmerald,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  ctaText: {
+    color: COLORS.white,
+    fontSize: 20,
+    fontFamily: "Outfit_700Bold",
+  }
 });
