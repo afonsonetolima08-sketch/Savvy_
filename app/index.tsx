@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { BlurView } from "expo-blur";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import {
   Dimensions,
   Platform,
@@ -12,7 +12,6 @@ import {
   View,
   Image,
   StatusBar,
-  ScrollView,
 } from "react-native";
 import Animated, {
   FadeInDown,
@@ -21,6 +20,11 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
+  withDelay,
+  useAnimatedScrollHandler,
+  interpolate,
+  Extrapolate,
+  withSpring,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
@@ -42,15 +46,45 @@ export default function WelcomeScreen() {
   const app = useApp();
   const t = useT();
 
-  // CTA Glow Pulse Animation
-  const buttonScale = useSharedValue(1);
+  const scrollY = useSharedValue(0);
+
+  // Background Glow Orbs Animations
+  const orb1Y = useSharedValue(100);
+  const orb2Y = useSharedValue(SCREEN_HEIGHT - 300);
 
   useEffect(() => {
-    buttonScale.value = withRepeat(withTiming(1.04, { duration: 2000 }), -1, true);
+    orb1Y.value = withRepeat(withTiming(300, { duration: 10000 }), -1, true);
+    orb2Y.value = withRepeat(withTiming(SCREEN_HEIGHT - 600, { duration: 12000 }), -1, true);
   }, []);
 
-  const animatedButtonStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: buttonScale.value }],
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  // Parallax styles
+  const heroImageStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(scrollY.value, [0, SCREEN_HEIGHT], [0, 200], Extrapolate.CLAMP) },
+      { scale: interpolate(scrollY.value, [-100, 0, SCREEN_HEIGHT], [1.2, 1, 1.1], Extrapolate.CLAMP) }
+    ],
+    opacity: interpolate(scrollY.value, [0, SCREEN_HEIGHT * 0.7], [0.6, 0.2], Extrapolate.CLAMP)
+  }));
+
+  const heroTextStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(scrollY.value, [0, 500], [0, -50], Extrapolate.CLAMP) }
+    ],
+    opacity: interpolate(scrollY.value, [0, 400], [1, 0], Extrapolate.CLAMP)
+  }));
+
+  const meshOrb1Style = useAnimatedStyle(() => ({
+    transform: [{ translateY: orb1Y.value }],
+  }));
+
+  const meshOrb2Style = useAnimatedStyle(() => ({
+    transform: [{ translateY: orb2Y.value }],
   }));
 
   if (!app) return null;
@@ -68,166 +102,155 @@ export default function WelcomeScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient 
-        colors={[COLORS.forest, COLORS.deepEmerald, COLORS.forest]} 
-        style={StyleSheet.absoluteFill} 
-      />
       
-      <ScrollView 
+      {/* CINEMATIC BACKGROUND MESH */}
+      <View style={StyleSheet.absoluteFill}>
+         <LinearGradient colors={[COLORS.forest, COLORS.deepEmerald]} style={StyleSheet.absoluteFill} />
+         
+         <Animated.View style={[styles.glowOrb, styles.orb1, meshOrb1Style]} />
+         <Animated.View style={[styles.glowOrb, styles.orb2, meshOrb2Style]} />
+         
+         {Platform.OS !== "web" && (
+           <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+         )}
+      </View>
+      
+      <Animated.ScrollView 
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 0 }}
       >
-        {/* SECTION 1: HERO (High Impact) */}
-        <View style={[styles.heroSection, { minHeight: SCREEN_HEIGHT }]}>
-          <Image 
-            source={require("@/assets/images/hero_financial.png")}
-            style={styles.heroBgImage}
-            resizeMode="cover"
-          />
-          <LinearGradient colors={["transparent", COLORS.forest]} style={styles.heroOverlay} />
+        {/* HERO SECTION WITH PARALLAX */}
+        <View style={[styles.heroSection, { height: SCREEN_HEIGHT }]}>
+          <Animated.View style={[StyleSheet.absoluteFill, heroImageStyle]}>
+            <Image 
+              source={require("@/assets/images/hero_financial.png")}
+              style={styles.heroBgImage}
+              resizeMode="cover"
+            />
+            <LinearGradient colors={["transparent", COLORS.forest]} style={styles.heroOverlay} />
+          </Animated.View>
 
-          <View style={[styles.heroContent, { paddingTop: insets.top + 60 }]}>
-            <Animated.View 
-              entering={FadeInDown.duration(1000).delay(200)}
-              style={styles.heroBadgeWrapper}
-            >
-              <BlurView intensity={30} tint="light" style={styles.glassBadge}>
-                <Feather name="shield" size={14} color={COLORS.brightMint} />
-                <Text style={styles.badgeText}>SAVVY FINANCE • INTELIGÊNCIA REAL</Text>
+          <Animated.View style={[styles.heroContent, heroTextStyle, { paddingTop: insets.top + 80 }]}>
+            <Animated.View entering={FadeInDown.springify().delay(200)} style={styles.badgeWrap}>
+              <BlurView intensity={25} tint="light" style={styles.glassBadge}>
+                <View style={styles.badgeDot} />
+                <Text style={styles.badgeText}>SISTEMA DE ELITE SAVVY</Text>
               </BlurView>
             </Animated.View>
 
-            <Animated.Text 
-              entering={FadeInUp.duration(1000).delay(400)}
-              style={styles.heroTitle}
-            >
-              O Teu Dinheiro sob Nova Inteligência.
+            <Animated.Text entering={FadeInUp.springify().delay(400)} style={styles.heroTitle}>
+              O Futuro das tuas Finanças é Hoje.
             </Animated.Text>
             
-            <Animated.Text 
-              entering={FadeInUp.duration(1000).delay(600)}
-              style={styles.heroSubtitle}
-            >
-              A Savvy automatiza a gestão do teu património com IA, dando-te clareza total e liberdade para viveres o que importa.
+            <Animated.Text entering={FadeInUp.springify().delay(600)} style={styles.heroSubtitle}>
+              Sincroniza o teu património global, automatiza poupanças e deixa a nossa IA guiar cada cêntimo.
             </Animated.Text>
 
-            <Animated.View entering={FadeInUp.duration(1000).delay(800)}>
-              <TouchableOpacity 
-                onPress={handleStart} 
-                activeOpacity={0.9}
-                style={styles.ctaWrapper}
-              >
-                <Animated.View style={[styles.ctaButton, animatedButtonStyle]}>
-                   <Text style={styles.ctaText}>Começar Agora</Text>
-                   <Feather name="chevron-right" size={24} color={COLORS.white} />
-                </Animated.View>
+            <Animated.View entering={FadeInUp.springify().delay(800)}>
+              <TouchableOpacity onPress={handleStart} activeOpacity={0.9} style={styles.ctaContainer}>
+                <LinearGradient 
+                  colors={[COLORS.neonEmerald, COLORS.brightMint]} 
+                  start={{x: 0, y: 0}} end={{x: 1, y: 1}}
+                  style={styles.ctaButton}
+                >
+                   <Text style={styles.ctaText}>Iniciar Evolução</Text>
+                   <Feather name="zap" size={24} color={COLORS.forest} />
+                </LinearGradient>
               </TouchableOpacity>
             </Animated.View>
           </View>
           
-          <Animated.View 
-             entering={FadeInUp.delay(1200)}
-             style={styles.scrollIndicator}
-          >
-             <Feather name="chevron-down" size={24} color="rgba(255,255,255,0.4)" />
-          </Animated.View>
-        </View>
-
-        {/* SECTION 2: FEATURES GRID */}
-        <View style={styles.featuresSection}>
-          <Animated.Text 
-             entering={FadeInUp.duration(800)}
-             style={styles.sectionTitle}
-          >
-            Três razões para seres Savvy
-          </Animated.Text>
-          
-          <View style={styles.featuresGrid}>
-            {[
-              { 
-                title: "Automação Total", 
-                desc: "Esquece o registo manual. A nossa IA entende os teus hábitos e faz o trabalho por ti.",
-                icon: "cpu"
-              },
-              { 
-                title: "Património 360º", 
-                desc: "Consolida os teus ativos, investimentos e dívidas numa visão estratégica unificada.",
-                icon: "pie-chart"
-              },
-              { 
-                title: "Sincronização Cloud", 
-                desc: "Dados seguros, encriptados e acessíveis em qualquer dispositivo, em tempo real.",
-                icon: "cloud"
-              }
-            ].map((f, i) => (
-              <Animated.View 
-                key={i}
-                entering={FadeInUp.delay(i * 200).duration(800)}
-                style={styles.featureCardWrap}
-              >
-                <BlurView intensity={10} tint="light" style={styles.featureCard}>
-                   <View style={styles.featureIconBox}>
-                      <Feather name={f.icon as any} size={28} color={COLORS.neonEmerald} />
-                   </View>
-                   <Text style={styles.featureCardTitle}>{f.title}</Text>
-                   <Text style={styles.featureCardDesc}>{f.desc}</Text>
-                </BlurView>
-              </Animated.View>
-            ))}
+          <View style={styles.scrollTip}>
+             <Text style={styles.scrollTipText}>EXPLORAR</Text>
+             <Feather name="chevron-down" size={20} color="rgba(255,255,255,0.3)" />
           </View>
         </View>
 
-        {/* SECTION 3: AI SHOWCASE */}
-        <View style={styles.aiShowcaseSection}>
-           <LinearGradient
-              colors={["rgba(16, 185, 129, 0.1)", "transparent"]}
-              style={StyleSheet.absoluteFill}
-           />
-           <View style={styles.aiContent}>
-              <View style={styles.aiLeft}>
-                 <Text style={styles.aiBadge}>ASSISTENTE IA</Text>
-                 <Text style={styles.aiTitle}>Um consultor financeiro no teu bolso.</Text>
-                 <Text style={styles.aiDesc}>
-                    Recebe dicas em tempo real baseadas na tua taxa de poupança atual e objetivos de vida. 
-                    A Savvy não apenas regista; ela ensina-te a poupar.
-                 </Text>
-              </View>
-              <View style={styles.aiRight}>
-                 <BlurView intensity={20} tint="light" style={styles.aiMessageMockup}>
-                    <Feather name="message-circle" size={20} color={COLORS.brightMint} style={{ marginBottom: 10 }} />
-                    <Text style={styles.aiMessageText}>
-                       "Notei que podes poupar **50€** este mês se reduzires as subscrições que não usas há 3 meses. Queres ver os detalhes?"
+        {/* FEATURES - GLASSMARPHISM 3.0 */}
+        <View style={styles.benefitsSection}>
+           <Text style={styles.sectionHeading}>Tecnologia que cria Liberdade</Text>
+           
+           <View style={styles.benefitsGrid}>
+              {[
+                { 
+                  title: "IA Preditiva", 
+                  desc: "Antecipa tendências de mercado e gastos antes de acontecerem.",
+                  icon: "activity",
+                  delay: 200
+                },
+                { 
+                  title: "Ativos Globais", 
+                  desc: "Consolida Crypto, Stocks e Imobiliário numa única interface premium.",
+                  icon: "briefcase",
+                  delay: 400
+                },
+                { 
+                  title: "Segurança Militar", 
+                  desc: "Encriptação ponta-a-ponta para que os teus dados nunca saiam das tuas mãos.",
+                  icon: "lock",
+                  delay: 600
+                }
+              ].map((b, i) => (
+                <Animated.View 
+                  key={i} 
+                  entering={FadeInUp.delay(b.delay).springify()}
+                  style={styles.premiumCardWrap}
+                >
+                  <BlurView intensity={15} tint="light" style={styles.premiumCard}>
+                      <View style={styles.cardIconBox}>
+                         <Feather name={b.icon as any} size={30} color={COLORS.brightMint} />
+                      </View>
+                      <Text style={styles.cardTitle}>{b.title}</Text>
+                      <Text style={styles.cardDesc}>{b.desc}</Text>
+                  </BlurView>
+                </Animated.View>
+              ))}
+           </View>
+        </View>
+
+        {/* INTERACTIVE AI SPOTLIGHT */}
+        <View style={styles.aiSpotlight}>
+           <View style={styles.spotlightContent}>
+              <View style={styles.aiVisual}>
+                 <LinearGradient 
+                    colors={[COLORS.neonEmerald, "transparent"]} 
+                    style={styles.aiGlow} 
+                 />
+                 <BlurView intensity={20} tint="light" style={styles.aiBubble}>
+                    <Text style={styles.aiBubbleTitle}>SAVVY AI AGENT</Text>
+                    <Text style={styles.aiBubbleText}>
+                       "Detectei uma oportunidade de otimização fiscal de **240€** nos teus investimentos recentes. Queres automatizar a declaração?"
                     </Text>
                  </BlurView>
+              </View>
+              
+              <View style={styles.aiTextContainer}>
+                 <Text style={styles.aiHighlightTitle}>Inteligência Proativa</Text>
+                 <Text style={styles.aiHighlightDesc}>
+                    Não somos apenas um tracker. Somos um agente ativo que trabalha 24/7 para encontrar dinheiro onde antes havia apenas confusão.
+                 </Text>
               </View>
            </View>
         </View>
 
-        {/* SECTION 4: FINAL CTA */}
-        <View style={styles.finalCTASection}>
-           <Animated.Text 
-             entering={FadeInDown.duration(800)}
-             style={styles.finalTitle}
-           >
-              A tua liberdade financeira começa aqui.
-           </Animated.Text>
-           <TouchableOpacity 
-              onPress={handleStart} 
-              activeOpacity={0.9}
-              style={styles.finalButtonContainer}
-           >
-              <LinearGradient 
-                 colors={[COLORS.neonEmerald, COLORS.brightMint]} 
-                 start={{x: 0, y: 0}} end={{x: 1, y: 1}}
-                 style={styles.finalButton}
-              >
-                 <Text style={[styles.ctaText, { color: COLORS.forest }]}>Criar Conta Grátis</Text>
-                 <Feather name="arrow-right" size={24} color={COLORS.forest} />
-              </LinearGradient>
-           </TouchableOpacity>
-           <Text style={styles.footerText}>© 2024 Savvy Finance. Todos os direitos reservados.</Text>
+        {/* FINAL CONVERSION */}
+        <View style={styles.finalSection}>
+           <BlurView intensity={10} tint="light" style={styles.finalBox}>
+              <Text style={styles.finalMainTitle}>Junta-te à elite financeira.</Text>
+              <Text style={styles.finalSubText}>Centenas de utilizadores já automatizaram o seu futuro com a Savvy.</Text>
+              
+              <TouchableOpacity onPress={handleStart} activeOpacity={0.9} style={styles.finalCta}>
+                 <Text style={styles.finalCtaText}>Criar Conta Agora</Text>
+              </TouchableOpacity>
+              
+              <View style={styles.footerBranding}>
+                 <Text style={styles.footerBrandName}>SAVVY</Text>
+                 <Text style={styles.footerLegal}>© 2024 DESIGNED FOR FINANCIAL FREEDOM</Text>
+              </View>
+           </BlurView>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -237,16 +260,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.forest,
   },
+  glowOrb: {
+    position: "absolute",
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    opacity: 0.2,
+  },
+  orb1: {
+    backgroundColor: COLORS.neonEmerald,
+    top: 50,
+    right: -150,
+  },
+  orb2: {
+    backgroundColor: COLORS.deepEmerald,
+    bottom: -100,
+    left: -150,
+  },
   heroSection: {
-    alignItems: "center",
-    justifyContent: "center",
     width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
   },
   heroBgImage: {
     ...StyleSheet.absoluteFillObject,
     width: "100%",
-    height: "100%",
-    opacity: 0.6,
+    height: "110%", // A bit taller for parallax
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -254,206 +294,255 @@ const styles = StyleSheet.create({
   heroContent: {
     paddingHorizontal: 30,
     alignItems: "center",
+    zIndex: 10,
   },
-  heroBadgeWrapper: {
-    marginBottom: 30,
+  badgeWrap: {
+    marginBottom: 35,
   },
   glassBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 30,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 40,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: "rgba(255, 255, 255, 0.15)",
+  },
+  badgeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.neonEmerald,
+    shadowColor: COLORS.neonEmerald,
+    shadowRadius: 5,
+    elevation: 3,
   },
   badgeText: {
-    color: COLORS.brightMint,
-    fontSize: 11,
+    color: COLORS.white,
+    fontSize: 12,
     fontFamily: "Outfit_700Bold",
-    letterSpacing: 2,
+    letterSpacing: 3,
   },
   heroTitle: {
     color: COLORS.white,
-    fontSize: 48,
+    fontSize: 52,
     fontFamily: "Outfit_900Black",
     textAlign: "center",
-    lineHeight: 56,
-    letterSpacing: -1.5,
+    lineHeight: 62,
+    letterSpacing: -2,
     marginBottom: 20,
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 10,
   },
   heroSubtitle: {
     color: COLORS.textMuted,
-    fontSize: 20,
+    fontSize: 21,
     fontFamily: "Inter_500Medium",
     textAlign: "center",
-    lineHeight: 30,
-    paddingHorizontal: 10,
-    marginBottom: 40,
+    lineHeight: 32,
+    paddingHorizontal: 15,
+    marginBottom: 45,
     opacity: 0.9,
   },
-  ctaWrapper: {
+  ctaContainer: {
     shadowColor: COLORS.neonEmerald,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.6,
+    shadowRadius: 30,
     elevation: 10,
   },
   ctaButton: {
-    backgroundColor: COLORS.neonEmerald,
-    paddingVertical: 20,
-    paddingHorizontal: 40,
-    borderRadius: 40,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 15,
+    paddingVertical: 22,
+    paddingHorizontal: 44,
+    borderRadius: 44,
   },
   ctaText: {
-    color: COLORS.white,
-    fontSize: 20,
+    color: COLORS.forest,
+    fontSize: 21,
     fontFamily: "Outfit_700Bold",
   },
-  scrollIndicator: {
+  scrollTip: {
     position: "absolute",
-    bottom: 30,
-    alignSelf: "center",
+    bottom: 40,
+    alignItems: "center",
+    gap: 8,
   },
-  featuresSection: {
-    paddingVertical: 100,
+  scrollTipText: {
+    color: "rgba(255,255,255,0.3)",
+    fontSize: 12,
+    letterSpacing: 4,
+    fontFamily: "Outfit_700Bold",
+  },
+  benefitsSection: {
+    paddingVertical: 120,
     paddingHorizontal: 24,
   },
-  sectionTitle: {
-    color: COLORS.white,
-    fontSize: 32,
-    fontFamily: "Outfit_900Black",
-    textAlign: "center",
-    marginBottom: 60,
-  },
-  featuresGrid: {
-    gap: 24,
-  },
-  featureCardWrap: {
-    borderRadius: 30,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.1)",
-  },
-  featureCard: {
-    padding: 30,
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
-  },
-  featureIconBox: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  featureCardTitle: {
-    color: COLORS.white,
-    fontSize: 22,
-    fontFamily: "Outfit_700Bold",
-    marginBottom: 12,
-  },
-  featureCardDesc: {
-    color: COLORS.textMuted,
-    fontSize: 16,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 24,
-    opacity: 0.8,
-  },
-  aiShowcaseSection: {
-    paddingVertical: 100,
-    paddingHorizontal: 24,
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
-  },
-  aiContent: {
-    flexDirection: Platform.OS === "web" && SCREEN_WIDTH > 800 ? "row" : "column",
-    gap: 40,
-    alignItems: "center",
-  },
-  aiLeft: {
-    flex: 1,
-  },
-  aiBadge: {
-    color: COLORS.neonEmerald,
-    fontFamily: "Outfit_700Bold",
-    fontSize: 14,
-    letterSpacing: 2,
-    marginBottom: 16,
-  },
-  aiTitle: {
+  sectionHeading: {
     color: COLORS.white,
     fontSize: 36,
     fontFamily: "Outfit_900Black",
-    lineHeight: 44,
-    marginBottom: 20,
+    textAlign: "center",
+    marginBottom: 70,
+    letterSpacing: -1,
   },
-  aiDesc: {
-    color: COLORS.textMuted,
-    fontSize: 18,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 28,
+  benefitsGrid: {
+    gap: 30,
   },
-  aiRight: {
-    flex: 1,
-    width: "100%",
-  },
-  aiMessageMockup: {
-    padding: 30,
-    borderRadius: 24,
+  premiumCardWrap: {
+    borderRadius: 35,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    backgroundColor: "rgba(16, 185, 129, 0.05)",
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
-  aiMessageText: {
+  premiumCard: {
+    padding: 35,
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+  },
+  cardIconBox: {
+    width: 65,
+    height: 65,
+    borderRadius: 22,
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 25,
+  },
+  cardTitle: {
     color: COLORS.white,
+    fontSize: 24,
+    fontFamily: "Outfit_700Bold",
+    marginBottom: 14,
+  },
+  cardDesc: {
+    color: COLORS.textMuted,
     fontSize: 17,
     fontFamily: "Inter_400Regular",
     lineHeight: 26,
+    opacity: 0.8,
   },
-  finalCTASection: {
+  aiSpotlight: {
     paddingVertical: 120,
-    paddingHorizontal: 30,
+    paddingHorizontal: 24,
+  },
+  spotlightContent: {
+    flexDirection: Platform.OS === "web" && SCREEN_WIDTH > 800 ? "row" : "column",
     alignItems: "center",
+    gap: 60,
   },
-  finalTitle: {
-    color: COLORS.white,
-    fontSize: 32,
-    fontFamily: "Outfit_900Black",
-    textAlign: "center",
-    marginBottom: 40,
-  },
-  finalButtonContainer: {
+  aiVisual: {
+    flex: 1,
     width: "100%",
-    maxWidth: 400,
-    shadowColor: COLORS.neonEmerald,
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.5,
-    shadowRadius: 25,
-    elevation: 15,
-  },
-  finalButton: {
-    paddingVertical: 22,
-    paddingHorizontal: 40,
-    borderRadius: 45,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 14,
   },
-  footerText: {
-    color: "rgba(255, 255, 255, 0.3)",
+  aiGlow: {
+    position: "absolute",
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    opacity: 0.3,
+    filter: Platform.OS === "web" ? "blur(60px)" : undefined,
+  },
+  aiBubble: {
+    padding: 35,
+    borderRadius: 30,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.4)",
+    backgroundColor: "rgba(1, 36, 28, 0.8)",
+    shadowColor: COLORS.neonEmerald,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.4,
+    shadowRadius: 40,
+    elevation: 20,
+  },
+  aiBubbleTitle: {
+    color: COLORS.neonEmerald,
+    fontFamily: "Outfit_900Black",
     fontSize: 12,
-    marginTop: 80,
-    textAlign: "center",
+    letterSpacing: 2,
+    marginBottom: 15,
   },
+  aiBubbleText: {
+    color: COLORS.white,
+    fontSize: 19,
+    fontFamily: "Inter_500Medium",
+    lineHeight: 28,
+  },
+  aiTextContainer: {
+    flex: 1,
+  },
+  aiHighlightTitle: {
+    color: COLORS.white,
+    fontSize: 40,
+    fontFamily: "Outfit_900Black",
+    marginBottom: 20,
+    letterSpacing: -1,
+  },
+  aiHighlightDesc: {
+    color: COLORS.textMuted,
+    fontSize: 19,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 32,
+    opacity: 0.9,
+  },
+  finalSection: {
+    paddingBottom: 100,
+    paddingHorizontal: 24,
+  },
+  finalBox: {
+    padding: 60,
+    borderRadius: 45,
+    overflow: "hidden",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
+  },
+  finalMainTitle: {
+    color: COLORS.white,
+    fontSize: 44,
+    fontFamily: "Outfit_900Black",
+    textAlign: "center",
+    marginBottom: 20,
+    letterSpacing: -2,
+  },
+  finalSubText: {
+    color: COLORS.textMuted,
+    fontSize: 19,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    marginBottom: 50,
+  },
+  finalCta: {
+    backgroundColor: COLORS.white,
+    paddingVertical: 22,
+    paddingHorizontal: 54,
+    borderRadius: 44,
+  },
+  finalCtaText: {
+    color: COLORS.forest,
+    fontSize: 21,
+    fontFamily: "Outfit_700Bold",
+  },
+  footerBranding: {
+    marginTop: 100,
+    alignItems: "center",
+    gap: 10,
+  },
+  footerBrandName: {
+    color: COLORS.white,
+    fontFamily: "Outfit_900Black",
+    fontSize: 32,
+    letterSpacing: 8,
+    opacity: 0.1,
+  },
+  footerLegal: {
+    color: "rgba(255,255,255,0.2)",
+    fontSize: 10,
+    letterSpacing: 2,
+    fontFamily: "Outfit_700Bold",
+  }
 });
