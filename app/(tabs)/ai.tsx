@@ -402,6 +402,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     maxHeight: 120,
     lineHeight: 20,
+    outlineStyle: "none" as any,
   },
   sendButton: {
     width: 42,

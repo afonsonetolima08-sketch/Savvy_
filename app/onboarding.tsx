@@ -400,6 +400,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     fontSize: 22,
     fontFamily: "Inter_500Medium",
+    outlineStyle: "none" as any,
   },
   options: {
     gap: 10,
@@ -438,6 +439,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontFamily: "Inter_700Bold",
     paddingVertical: 16,
+    outlineStyle: "none" as any,
   },
   continueBtn: {
     flexDirection: "row",

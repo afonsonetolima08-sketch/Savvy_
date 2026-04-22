@@ -343,6 +343,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Inter_400Regular",
     height: "100%",
+    outlineStyle: "none" as any,
   },
   forgotLink: {
     alignSelf: "flex-end",

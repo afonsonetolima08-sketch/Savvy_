@@ -322,6 +322,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontFamily: "Inter_700Bold",
     paddingVertical: 14,
+    outlineStyle: "none" as any,
   },
   categoryGrid: {
     flexDirection: "row",
@@ -348,5 +349,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     fontFamily: "Inter_400Regular",
+    outlineStyle: "none" as any,
   },
 });

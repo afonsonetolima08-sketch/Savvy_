@@ -869,12 +869,12 @@ const styles = StyleSheet.create({
   pickerLabel: { fontSize: 16, fontFamily: "Inter_500Medium" },
   numRow: { flexDirection: "row", alignItems: "center", borderWidth: 2, borderRadius: 16, paddingHorizontal: 20 },
   numSymbol: { fontSize: 28, fontFamily: "Inter_700Bold" },
-  numInput: { flex: 1, fontSize: 36, fontFamily: "Inter_700Bold", paddingVertical: 16, paddingLeft: 8 },
-  nameInput: { borderWidth: 2, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, fontSize: 22, fontFamily: "Inter_500Medium" },
+  numInput: { flex: 1, fontSize: 36, fontFamily: "Inter_700Bold", paddingVertical: 16, paddingLeft: 8, outlineStyle: "none" as any },
+  nameInput: { borderWidth: 2, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, fontSize: 22, fontFamily: "Inter_500Medium", outlineStyle: "none" as any },
   // Account modal inputs
   inputLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.6 },
   inputGroup: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 16, height: 52 },
-  accountInput: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", height: "100%" },
+  accountInput: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", height: "100%", outlineStyle: "none" as any },
   errorBox: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
   errorText: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#FF3B30", flex: 1 },
 });
