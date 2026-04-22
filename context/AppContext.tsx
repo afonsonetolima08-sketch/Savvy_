@@ -162,6 +162,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addTransaction = useCallback(async (t: Omit<Transaction, "id">) => {
     if (!session) return;
+
+    // Optimistic update: add to local state immediately with a temporary ID
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const optimisticTx: Transaction = { ...t, id: tempId };
+    setTransactions((prev) => [optimisticTx, ...prev]);
+
     try {
       const { data, error } = await supabase.from("transactions").insert([{
         user_id: session.user.id,
@@ -173,15 +179,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }]).select().single();
 
       if (!error && data) {
-        setTransactions((prev) => [data as Transaction, ...prev]);
+        // Replace the optimistic entry with the real server data
+        setTransactions((prev) =>
+          prev.map((tx) => (tx.id === tempId ? (data as Transaction) : tx))
+        );
+      } else if (error) {
+        // Rollback optimistic update on error
+        setTransactions((prev) => prev.filter((tx) => tx.id !== tempId));
+        console.error("addTransaction error:", error);
       }
     } catch (e) {
+      // Rollback on network failure
+      setTransactions((prev) => prev.filter((tx) => tx.id !== tempId));
       console.error(e);
     }
   }, [session]);
 
   const updateTransaction = useCallback(async (t: Transaction) => {
     if (!session) return;
+
+    // Optimistic update
+    let oldTx: Transaction | undefined;
+    setTransactions((prev) => {
+      oldTx = prev.find((tx) => tx.id === t.id);
+      return prev.map((tx) => (tx.id === t.id ? t : tx));
+    });
+
     try {
       const { error } = await supabase.from("transactions").update({
         type: t.type,
@@ -191,22 +214,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         date: t.date
       }).eq("id", t.id);
 
-      if (!error) {
-        setTransactions((prev) => prev.map((tx) => (tx.id === t.id ? t : tx)));
+      if (error) {
+        // Rollback
+        if (oldTx) {
+          setTransactions((prev) => prev.map((tx) => (tx.id === t.id ? oldTx! : tx)));
+        }
+        console.error("updateTransaction error:", error);
       }
     } catch (e) {
+      // Rollback
+      if (oldTx) {
+        setTransactions((prev) => prev.map((tx) => (tx.id === t.id ? oldTx! : tx)));
+      }
       console.error(e);
     }
   }, [session]);
 
   const deleteTransaction = useCallback(async (id: string) => {
     if (!session) return;
+
+    // Optimistic delete
+    let deletedTx: Transaction | undefined;
+    setTransactions((prev) => {
+      deletedTx = prev.find((tx) => tx.id === id);
+      return prev.filter((tx) => tx.id !== id);
+    });
+
     try {
       const { error } = await supabase.from("transactions").delete().eq("id", id);
-      if (!error) {
-        setTransactions((prev) => prev.filter((tx) => tx.id !== id));
+      if (error) {
+        // Rollback
+        if (deletedTx) {
+          setTransactions((prev) => [deletedTx!, ...prev]);
+        }
+        console.error("deleteTransaction error:", error);
       }
     } catch (e) {
+      // Rollback
+      if (deletedTx) {
+        setTransactions((prev) => [deletedTx!, ...prev]);
+      }
       console.error(e);
     }
   }, [session]);
