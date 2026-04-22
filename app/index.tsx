@@ -81,35 +81,35 @@ export default function WelcomeScreen() {
       title: t.introSlide1Title, 
       desc: t.introSlide1Desc,
       icon: "cpu",
-      image: require("@/assets/images/hero.png")
+      image: require("@/assets/images/hero_financial.png")
     },
     { 
       id: "2", 
       title: t.introSlide2Title, 
       desc: t.introSlide2Desc,
       icon: "message-square",
-      image: require("@/assets/images/hero.png")
+      image: require("@/assets/images/hero_financial.png")
     },
     { 
       id: "3", 
       title: t.introSlide3Title, 
       desc: t.introSlide3Desc,
       icon: "globe",
-      image: require("@/assets/images/hero.png")
+      image: require("@/assets/images/hero_financial.png")
     },
     { 
       id: "4", 
       title: t.introSlide4Title, 
       desc: t.introSlide4Desc,
       icon: "bar-chart-2",
-      image: require("@/assets/images/hero.png")
+      image: require("@/assets/images/hero_financial.png")
     },
     { 
       id: "5", 
       title: t.introSlide5Title, 
       desc: t.introSlide5Desc,
       icon: "cloud",
-      image: require("@/assets/images/hero.png")
+      image: require("@/assets/images/hero_financial.png")
     },
   ];
 
@@ -127,30 +127,46 @@ export default function WelcomeScreen() {
 
   const renderItem = ({ item, index }: { item: typeof slides[0], index: number }) => (
     <View style={styles.slide}>
-      <View style={[styles.heroImageContainer, { marginTop: insets.top + 20 }]}>
-        <Image 
-          source={item.image}
-          style={styles.heroImage}
-          resizeMode="cover"
-        />
-        <LinearGradient
-          colors={["transparent", COLORS.forest]}
-          style={styles.heroOverlay}
-        />
-      </View>
-
-      <View style={styles.contentWrap}>
-        <View style={styles.taglineContainer}>
-          <BlurView intensity={20} tint="light" style={styles.taglineBadge}>
-            <View style={styles.taglineRow}>
-              <Feather name={item.icon as any} size={14} color={COLORS.brightMint} />
-              <Text style={styles.taglineText}>SAVVY FINANCE • {item.title.toUpperCase()}</Text>
-            </View>
-          </BlurView>
+      <View style={styles.contentContainer}>
+        <View style={styles.heroImageContainer}>
+          <Image 
+            source={item.image}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={["transparent", COLORS.forest]}
+            style={styles.heroOverlay}
+          />
         </View>
 
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.subtitle}>{item.desc}</Text>
+        <View style={styles.textContainer}>
+          <Animated.View 
+            entering={FadeInDown.delay(200).duration(800)}
+            style={styles.taglineContainer}
+          >
+            <BlurView intensity={30} tint="light" style={styles.taglineBadge}>
+              <View style={styles.taglineRow}>
+                <Feather name={item.icon as any} size={14} color={COLORS.brightMint} />
+                <Text style={styles.taglineText}>SAVVY FINANCE • {item.title.toUpperCase()}</Text>
+              </View>
+            </BlurView>
+          </Animated.View>
+
+          <Animated.Text 
+            entering={FadeInUp.delay(400).duration(800)}
+            style={styles.title}
+          >
+            {item.title}
+          </Animated.Text>
+          
+          <Animated.Text 
+            entering={FadeInUp.delay(600).duration(800)}
+            style={styles.subtitle}
+          >
+            {item.desc}
+          </Animated.Text>
+        </View>
       </View>
     </View>
   );
@@ -197,13 +213,16 @@ export default function WelcomeScreen() {
       </Animated.View>
 
       {/* DOT INDICATORS */}
-      <View style={[styles.dotsContainer, { bottom: Math.max(insets.bottom, 24) + 80 }]}>
+      <View style={[styles.dotsContainer, { bottom: Math.max(insets.bottom, 24) + 90 }]}>
         {slides.map((_, i) => (
           <View 
             key={i} 
             style={[
               styles.dot, 
-              { backgroundColor: i === activeIndex ? COLORS.neonEmerald : "rgba(255,255,255,0.2)" }
+              { 
+                backgroundColor: i === activeIndex ? COLORS.neonEmerald : "rgba(255,255,255,0.2)",
+                width: i === activeIndex ? 24 : 8,
+              }
             ]} 
           />
         ))}
@@ -221,13 +240,26 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
     paddingHorizontal: 24,
+    justifyContent: "center", // V-Center slides properly
+  },
+  contentContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    transform: [{ translateY: -40 }], // Slight upward shift to balance eye-level
   },
   heroImageContainer: {
     width: "100%",
-    height: SCREEN_HEIGHT * 0.4,
+    aspectRatio: 1.2,
     borderRadius: 32,
     overflow: "hidden",
     backgroundColor: COLORS.deepEmerald,
+    marginBottom: 40,
+    shadowColor: COLORS.neonEmerald,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   heroImage: {
     width: "100%",
@@ -236,48 +268,54 @@ const styles = StyleSheet.create({
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
   },
-  contentWrap: {
+  textContainer: {
     alignItems: "center",
-    marginTop: 32,
+    width: "100%",
   },
   taglineContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   taglineBadge: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(52, 211, 153, 0.2)",
+    borderColor: "rgba(16, 185, 129, 0.3)",
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
   },
   taglineRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   taglineText: {
     color: COLORS.brightMint,
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: "Outfit_700Bold",
-    letterSpacing: 1.5,
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
   title: {
     color: COLORS.white,
-    fontSize: 38,
+    fontSize: 42,
     fontFamily: "Outfit_900Black",
     textAlign: "center",
-    letterSpacing: -1,
-    lineHeight: 44,
-    marginBottom: 16,
+    letterSpacing: -1.5,
+    lineHeight: 50,
+    marginBottom: 20,
+    textShadowColor: "rgba(16, 185, 129, 0.4)",
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 10,
   },
   subtitle: {
     color: COLORS.textMuted,
-    fontSize: 17,
+    fontSize: 19,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
-    lineHeight: 26,
-    paddingHorizontal: 20,
+    lineHeight: 28,
+    paddingHorizontal: 16,
+    opacity: 0.9,
   },
   floatingCTAContainer: {
     position: "absolute",
@@ -288,25 +326,25 @@ const styles = StyleSheet.create({
   },
   ctaButtonContainer: {
     shadowColor: COLORS.neonEmerald,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.5,
+    shadowRadius: 25,
     elevation: 8,
   },
   ctaButton: {
     backgroundColor: COLORS.neonEmerald,
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 35,
+    paddingVertical: 20,
+    paddingHorizontal: 48,
+    borderRadius: 40,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    minWidth: 240,
+    gap: 14,
+    minWidth: 260,
     justifyContent: "center",
   },
   ctaText: {
     color: COLORS.white,
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: "Outfit_700Bold",
   },
   dotsContainer: {
@@ -316,8 +354,8 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   dot: {
-    width: 8,
     height: 8,
     borderRadius: 4,
+    transition: "all 0.3s ease",
   },
 });
