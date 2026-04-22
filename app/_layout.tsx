@@ -1,3 +1,4 @@
+import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
