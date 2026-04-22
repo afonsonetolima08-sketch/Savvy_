@@ -159,7 +159,7 @@ export default function WelcomeScreen() {
                 </LinearGradient>
               </TouchableOpacity>
             </Animated.View>
-          </View>
+          </Animated.View>
           
           <View style={styles.scrollTip}>
              <Text style={styles.scrollTipText}>EXPLORAR</Text>
