@@ -21,16 +21,14 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
-  interpolate,
-  Extrapolate,
-  interpolateColor,
+  withSpring,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useT } from "@/hooks/useTranslations";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const FAST_SLIDE_DURATION = 2500;
+const FAST_SLIDE_DURATION = 2800; // Slightly slower for better readability of magnetic copy
 
 const COLORS = {
   forest: "#01241c",
@@ -48,14 +46,20 @@ export default function WelcomeScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const scrollX = useSharedValue(0);
 
-  // Animation for the button
+  // CTA Glow Pulse Animation
+  const glowOpacity = useSharedValue(0.4);
   const buttonScale = useSharedValue(1);
 
   useEffect(() => {
-    buttonScale.value = withRepeat(withTiming(1.06, { duration: 1500 }), -1, true);
+    glowOpacity.value = withRepeat(withTiming(0.8, { duration: 2000 }), -1, true);
+    buttonScale.value = withRepeat(withTiming(1.04, { duration: 2000 }), -1, true);
   }, []);
+
+  const animatedGlowStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+    transform: [{ scale: buttonScale.value * 1.1 }],
+  }));
 
   const animatedButtonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: buttonScale.value }],
@@ -79,7 +83,6 @@ export default function WelcomeScreen() {
       title: t.introSlide1Title, 
       desc: t.introSlide1Desc,
       icon: "zap",
-      color: "#10b981",
       image: require("@/assets/images/hero_financial.png")
     },
     { 
@@ -87,7 +90,6 @@ export default function WelcomeScreen() {
       title: t.introSlide2Title, 
       desc: t.introSlide2Desc,
       icon: "cpu",
-      color: "#34d399",
       image: require("@/assets/images/hero_financial.png")
     },
     { 
@@ -95,7 +97,6 @@ export default function WelcomeScreen() {
       title: t.introSlide3Title, 
       desc: t.introSlide3Desc,
       icon: "shield",
-      color: "#059669",
       image: require("@/assets/images/hero_financial.png")
     },
     { 
@@ -103,15 +104,13 @@ export default function WelcomeScreen() {
       title: t.introSlide4Title, 
       desc: t.introSlide4Desc,
       icon: "bar-chart-2",
-      color: "#10b981",
       image: require("@/assets/images/hero_financial.png")
     },
     { 
       id: "5", 
       title: t.introSlide5Title, 
       desc: t.introSlide5Desc,
-      icon: "globe",
-      color: "#34d399",
+      icon: "award",
       image: require("@/assets/images/hero_financial.png")
     },
   ];
@@ -127,45 +126,45 @@ export default function WelcomeScreen() {
     return () => clearInterval(timer);
   }, [slides.length]);
 
-  const onScroll = (event: any) => {
-    scrollX.value = event.nativeEvent.contentOffset.x;
-  };
+  const renderItem = ({ item }: { item: typeof slides[0] }) => (
+    <View style={styles.slide}>
+      <View style={styles.centerContent}>
+        <Animated.View 
+          entering={FadeInDown.springify().damping(15).delay(200)}
+          style={styles.imageContainer}
+        >
+          <Image source={item.image} style={styles.image} resizeMode="cover" />
+          <LinearGradient colors={["transparent", COLORS.forest]} style={styles.imageOverlay} />
+        </Animated.View>
 
-  const renderItem = ({ item, index }: { item: typeof slides[0], index: number }) => {
-    return (
-      <View style={styles.slide}>
-        <View style={styles.slideContent}>
-           <Animated.View 
-              entering={FadeInDown.delay(200).duration(1000)}
-              style={styles.imageWrap}
-            >
-              <Image source={item.image} style={styles.image} resizeMode="cover" />
-              <LinearGradient colors={["transparent", COLORS.forest]} style={styles.overlay} />
-           </Animated.View>
+        <View style={styles.textStack}>
+          <Animated.View 
+            entering={FadeInUp.springify().damping(15).delay(400)}
+            style={styles.badgeWrapper}
+          >
+            <BlurView intensity={40} tint="light" style={styles.glassBadge}>
+              <Feather name={item.icon as any} size={14} color={COLORS.brightMint} />
+              <Text style={styles.badgeText}>SAVVY PREMIUM • {item.title.split(" ")[0].toUpperCase()}</Text>
+            </BlurView>
+          </Animated.View>
 
-           <View style={styles.textWrap}>
-              <Animated.View 
-                entering={FadeInUp.delay(400).duration(800)}
-                style={styles.badgeContainer}
-              >
-                <BlurView intensity={25} tint="light" style={styles.badge}>
-                    <Feather name={item.icon as any} size={14} color={COLORS.brightMint} />
-                    <Text style={styles.badgeText}>SAVVY • {item.title.split(" ")[0].toUpperCase()}</Text>
-                </BlurView>
-              </Animated.View>
-
-              <Animated.Text entering={FadeInUp.delay(600).duration(1000)} style={styles.title}>
-                {item.title}
-              </Animated.Text>
-              
-              <Animated.Text entering={FadeInUp.delay(800).duration(1000)} style={styles.subtitle}>
-                {item.desc}
-              </Animated.Text>
-           </View>
+          <Animated.Text 
+            entering={FadeInUp.springify().damping(12).delay(600)}
+            style={styles.heroTitle}
+          >
+            {item.title}
+          </Animated.Text>
+          
+          <Animated.Text 
+            entering={FadeInUp.springify().damping(15).delay(800)}
+            style={styles.heroSubtitle}
+          >
+            {item.desc}
+          </Animated.Text>
         </View>
       </View>
-    );
-  };
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -184,12 +183,6 @@ export default function WelcomeScreen() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         scrollEnabled={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-          setActiveIndex(index);
-        }}
         getItemLayout={(_, index) => ({
           length: SCREEN_WIDTH,
           offset: SCREEN_WIDTH * index,
@@ -197,30 +190,35 @@ export default function WelcomeScreen() {
         })}
       />
 
-      <View style={[styles.staticOverlay, { bottom: Math.max(insets.bottom, 40) }]}>
-         <View style={styles.dotsRow}>
+      {/* SENIOR UX OVERLAY */}
+      <View style={[styles.uiOverlay, { bottom: Math.max(insets.bottom, 40) }]}>
+         {/* DASH PROGRESS (Modern alternative to dots) */}
+         <View style={styles.progressTracker}>
             {slides.map((_, i) => (
               <View 
                 key={i} 
                 style={[
-                  styles.dot, 
+                  styles.progressDash, 
                   { 
-                    backgroundColor: activeIndex === i ? COLORS.neonEmerald : "rgba(255,255,255,0.2)",
-                    width: activeIndex === i ? 24 : 8 
+                    backgroundColor: activeIndex === i ? COLORS.neonEmerald : "rgba(255,255,255,0.15)",
+                    width: activeIndex === i ? 32 : 12,
+                    opacity: activeIndex === i ? 1 : 0.5
                   }
                 ]} 
               />
             ))}
          </View>
 
+         {/* GLOW SURFACE CTA */}
          <TouchableOpacity 
             onPress={handleStart} 
-            activeOpacity={0.8}
-            style={styles.ctaWrapper}
+            activeOpacity={0.9}
+            style={styles.ctaTouchTarget}
          >
-            <Animated.View style={[styles.ctaButton, animatedButtonStyle]}>
-               <Text style={styles.ctaText}>{t.startNow}</Text>
-               <Feather name="arrow-right" size={22} color={COLORS.white} />
+            <Animated.View style={[styles.buttonGlow, animatedGlowStyle]} />
+            <Animated.View style={[styles.ctaMainButton, animatedButtonStyle]}>
+               <Text style={styles.ctaLabel}>{t.startNow}</Text>
+               <Feather name="chevron-right" size={24} color={COLORS.white} />
             </Animated.View>
          </TouchableOpacity>
       </View>
@@ -236,120 +234,134 @@ const styles = StyleSheet.create({
   slide: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
-  },
-  slideContent: {
-    flex: 1,
-    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 30,
   },
-  imageWrap: {
+  centerContent: {
+    alignItems: "center",
+    paddingHorizontal: 28,
+    transform: [{ translateY: -30 }],
+  },
+  imageContainer: {
     width: "100%",
-    height: SCREEN_HEIGHT * 0.42,
-    borderRadius: 40,
-    backgroundColor: COLORS.deepEmerald,
+    aspectRatio: 1.1,
+    borderRadius: 45,
     overflow: "hidden",
-    marginBottom: 40,
-    marginTop: -20,
+    backgroundColor: COLORS.deepEmerald,
+    marginBottom: 45,
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.15)",
+    // Layered Shadow for Depth
     shadowColor: COLORS.neonEmerald,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.25,
+    shadowRadius: 25,
+    elevation: 12,
   },
   image: {
     width: "100%",
     height: "100%",
   },
-  overlay: {
+  imageOverlay: {
     ...StyleSheet.absoluteFillObject,
   },
-  textWrap: {
+  textStack: {
     alignItems: "center",
     width: "100%",
   },
-  badgeContainer: {
-    marginBottom: 24,
+  badgeWrapper: {
+    marginBottom: 28,
   },
-  badge: {
+  glassBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 30,
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    borderRadius: 35,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
+    borderColor: "rgba(255, 255, 255, 0.12)",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
   },
   badgeText: {
     color: COLORS.brightMint,
     fontSize: 11,
     fontFamily: "Outfit_700Bold",
-    letterSpacing: 2.5,
+    letterSpacing: 3,
   },
-  title: {
+  heroTitle: {
     color: COLORS.white,
-    fontSize: 44,
+    fontSize: 46,
     fontFamily: "Outfit_900Black",
     textAlign: "center",
-    lineHeight: 52,
-    letterSpacing: -1.5,
+    lineHeight: 54,
+    letterSpacing: -2,
     marginBottom: 20,
-    textShadowColor: "rgba(16, 185, 129, 0.4)",
+    // Text Elevation
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 15,
+    textShadowRadius: 12,
   },
-  subtitle: {
+  heroSubtitle: {
     color: COLORS.textMuted,
     fontSize: 19,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_500Medium",
     textAlign: "center",
-    lineHeight: 28,
-    paddingHorizontal: 15,
-    opacity: 0.95,
+    lineHeight: 30,
+    paddingHorizontal: 12,
+    opacity: 0.85,
   },
-  staticOverlay: {
+  uiOverlay: {
     position: "absolute",
     left: 0,
     right: 0,
     alignItems: "center",
-    gap: 32,
+    gap: 35,
   },
-  dotsRow: {
+  progressTracker: {
     flexDirection: "row",
-    gap: 8,
+    gap: 10,
     alignItems: "center",
   },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-    transition: "all 0.3s ease",
+  progressDash: {
+    height: 4,
+    borderRadius: 2,
   },
-  ctaWrapper: {
+  ctaTouchTarget: {
     width: "100%",
     alignItems: "center",
     paddingHorizontal: 30,
   },
-  ctaButton: {
+  buttonGlow: {
+    position: "absolute",
+    width: 280,
+    height: 70,
+    backgroundColor: COLORS.neonEmerald,
+    borderRadius: 40,
+    filter: Platform.OS === "web" ? "blur(25px)" : undefined, // Blurred glow for web
+  },
+  ctaMainButton: {
     backgroundColor: COLORS.neonEmerald,
     width: "100%",
-    maxWidth: 320,
+    maxWidth: 340,
     paddingVertical: 22,
-    borderRadius: 44,
+    borderRadius: 45,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 14,
+    gap: 16,
+    zIndex: 1,
+    // Premium shadow
     shadowColor: COLORS.neonEmerald,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.6,
+    shadowRadius: 30,
+    elevation: 15,
   },
-  ctaText: {
+  ctaLabel: {
     color: COLORS.white,
-    fontSize: 20,
+    fontSize: 21,
     fontFamily: "Outfit_700Bold",
+    letterSpacing: -0.5,
   }
 });
