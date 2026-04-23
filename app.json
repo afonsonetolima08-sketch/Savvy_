@@ -19,13 +19,14 @@
     "android": {},
     "web": {
       "favicon": "./assets/images/icon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "static"
     },
     "plugins": [
       [
         "expo-router",
         {
-          "origin": "https://savvy.vercel.app/"
+          "origin": "https://savvy-expand.vercel.app/"
         }
       ],
       "expo-font",
