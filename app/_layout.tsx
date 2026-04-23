@@ -104,13 +104,23 @@ export default function RootLayout() {
       {Platform.OS === "web" && (
         <Head>
           <title>Savvy • Inteligência Financeira de Elite</title>
-          <meta name="description" content="Domina o teu património com a Savvy. Gestão inteligente, IA proativa e sincronização global para a tua liberdade financeira." />
-          <meta property="og:title" content="Savvy • O Teu Dinheiro sob Nova Inteligência" />
-          <meta property="og:description" content="Automatiza as tuas poupanças, consolida ativos globais e deixa a nossa IA guiar as tuas decisões financeiras." />
-          <meta property="og:image" content="/og-image.png" />
+          <meta name="description" content="Domina o teu património com a Savvy. Gestão inteligente, IA proativa e sincronização global." />
+          
+          {/* Open Graph / Facebook */}
           <meta property="og:type" content="website" />
+          <meta property="og:url" content="https://savvy-expand.vercel.app/" />
+          <meta property="og:title" content="Savvy • Inteligência Financeira de Elite" />
+          <meta property="og:description" content="Domina o teu património com a Savvy. Gestão inteligente, IA proativa e sincronização global para a tua liberdade financeira." />
+          <meta property="og:image" content="https://savvy-expand.vercel.app/og-image.png" />
+
+          {/* Twitter */}
           <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:image" content="/og-image.png" />
+          <meta name="twitter:url" content="https://savvy-expand.vercel.app/" />
+          <meta name="twitter:title" content="Savvy • Inteligência Financeira de Elite" />
+          <meta name="twitter:description" content="Domina o teu património com a Savvy. Gestão inteligente, IA proativa e sincronização global." />
+          <meta name="twitter:image" content="https://savvy-expand.vercel.app/og-image.png" />
+          
+          <link rel="icon" href="https://savvy-expand.vercel.app/favicon.ico" />
         </Head>
       )}
       <ErrorBoundary>
