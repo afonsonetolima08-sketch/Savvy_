@@ -101,6 +101,16 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
+      {Platform.OS === "web" && (
+        <Head>
+          <title>Savvy • Inteligência Financeira de Elite</title>
+          <meta name="description" content="Domina o teu património com a Savvy. Gestão inteligente, IA proativa e sincronização global para a tua liberdade financeira." />
+          <meta property="og:title" content="Savvy • O Teu Dinheiro sob Nova Inteligência" />
+          <meta property="og:description" content="Automatiza as tuas poupanças, consolida ativos globais e deixa a nossa IA guiar as tuas decisões financeiras." />
+          <meta property="og:type" content="website" />
+          <meta name="twitter:card" content="summary_large_image" />
+        </Head>
+      )}
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <AppProvider>
