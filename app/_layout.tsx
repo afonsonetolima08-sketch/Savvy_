@@ -94,11 +94,6 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) return null;
-
-  // On Web, we center the app in a column if the screen is large (Desktop)
-  const isDesktop = Platform.OS === "web" && width > 1000;
-
   return (
     <SafeAreaProvider>
       {Platform.OS === "web" && (
@@ -123,17 +118,20 @@ export default function RootLayout() {
           <link rel="icon" href="https://savvy-expand.vercel.app/favicon.ico" />
         </Head>
       )}
-      <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <AppProvider>
-            <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#f8faf8" }}>
-              <View style={styles.webContainer}>
-                <RootLayoutNav />
-              </View>
-            </GestureHandlerRootView>
-          </AppProvider>
-        </QueryClientProvider>
-      </ErrorBoundary>
+
+      {(!fontsLoaded && !fontError) ? null : (
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <AppProvider>
+              <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#f8faf8" }}>
+                <View style={styles.webContainer}>
+                  <RootLayoutNav />
+                </View>
+              </GestureHandlerRootView>
+            </AppProvider>
+          </QueryClientProvider>
+        </ErrorBoundary>
+      )}
       {Platform.OS === "web" && <Analytics />}
     </SafeAreaProvider>
   );
