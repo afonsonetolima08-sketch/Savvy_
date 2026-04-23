@@ -30,7 +30,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useT } from "@/hooks/useTranslations";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const isServer = typeof window === "undefined";
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = isServer 
+  ? { width: 1280, height: 800 } 
+  : Dimensions.get("window");
 
 const COLORS = {
   forest: "#01241c",

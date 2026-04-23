@@ -17,7 +17,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 import { supabase } from "@/utils/supabase";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function RegisterScreen() {
   const colors = useColors();
@@ -63,7 +62,8 @@ export default function RegisterScreen() {
 
       // Migrate existing local transactions if any
       try {
-        const localTxsStr = await AsyncStorage.getItem("@savvy_transactions");
+        const storage = require("@react-native-async-storage/async-storage").default;
+        const localTxsStr = await storage.getItem("@savvy_transactions");
         if (localTxsStr) {
           const localTxs = JSON.parse(localTxsStr);
           if (localTxs.length > 0) {
