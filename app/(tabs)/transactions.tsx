@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AddTransactionModal from "@/components/AddTransactionModal";
 import TransactionCard from "@/components/TransactionCard";
@@ -58,7 +59,10 @@ export default function TransactionsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.headerArea, { paddingTop: topPadding + 8 }]}>
+      <Animated.View 
+        entering={FadeInUp.duration(600).springify()}
+        style={[styles.headerArea, { paddingTop: topPadding + 8 }]}
+      >
         <View style={styles.titleRow}>
           <Text style={[styles.screenTitle, { color: colors.foreground }]}>{t.transactionsTitle}</Text>
           <TouchableOpacity
@@ -98,31 +102,36 @@ export default function TransactionsScreen() {
             );
           })}
         </View>
-      </View>
+      </Animated.View>
 
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 80 + bottomPadding, gap: 8 }}
-        renderItem={({ item }) => (
-          <TransactionCard
-            transaction={item}
-            onLongPress={() => handleDelete(item)}
-            delayLongPress={500}
-            onPress={() => {
-              Haptics.selectionAsync();
-              setEditTx(item);
-              setShowModal(true);
-            }}
-            onDelete={() => handleDelete(item)}
-          />
+        renderItem={({ item, index }) => (
+          <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
+            <TransactionCard
+              transaction={item}
+              onLongPress={() => handleDelete(item)}
+              delayLongPress={500}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setEditTx(item);
+                setShowModal(true);
+              }}
+              onDelete={() => handleDelete(item)}
+            />
+          </Animated.View>
         )}
         ListEmptyComponent={
-          <View style={[styles.emptyState, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Animated.View 
+            entering={FadeInDown.delay(200)}
+            style={[styles.emptyState, { backgroundColor: colors.card, borderColor: colors.border }]}
+          >
             <Feather name="inbox" size={32} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>{t.noTransactionsList}</Text>
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t.noTransactionsListHint}</Text>
-          </View>
+          </Animated.View>
         }
         showsVerticalScrollIndicator={false}
       />
