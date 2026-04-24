@@ -105,6 +105,7 @@ export default function TransactionsScreen() {
       </Animated.View>
 
       <FlatList
+        key={`list-${filter}`}
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 80 + bottomPadding, gap: 8 }}
