@@ -173,23 +173,20 @@ export default function AIScreen() {
   };
 
   return (
-    <LinearGradient 
-      colors={["#011511", "#01241c", "#000000"]} 
-      style={styles.container}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
-        <BlurView intensity={30} tint="light" style={styles.headerGlass}>
-          <View style={[styles.headerIcon, { backgroundColor: colors.primary + "30" }]}>
-            <Feather name="shield" size={18} color={colors.primary} />
+        <View style={styles.headerContent}>
+          <View style={[styles.headerIcon, { backgroundColor: colors.primary + "15" }]}>
+            <Feather name="cpu" size={20} color={colors.primary} />
           </View>
           <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>Savvy Private Banker</Text>
+            <Text style={[styles.headerTitle, { color: colors.foreground }]}>Savvy AI Agent</Text>
             <View style={styles.statusRow}>
               <View style={styles.statusDot} />
-              <Text style={styles.headerSubtitle}>Proactive Intelligence Active</Text>
+              <Text style={[styles.headerSubtitle, { color: colors.mutedForeground }]}>Proactive Intelligence</Text>
             </View>
           </View>
-        </BlurView>
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -208,7 +205,7 @@ export default function AIScreen() {
             isTyping ? (
               <Animated.View style={styles.messageRow} entering={FadeInDown}>
                 <Animated.View style={[styles.thinkingBubble, animatedThinkingStyle]}>
-                  <BlurView intensity={20} tint="light" style={styles.bubble}>
+                  <BlurView intensity={30} tint="light" style={styles.bubble}>
                     <View style={styles.typingIndicator}>
                       <View style={[styles.dot, { backgroundColor: colors.primary }]} />
                       <View style={[styles.dot, { backgroundColor: colors.primary, opacity: 0.6 }]} />
@@ -231,7 +228,7 @@ export default function AIScreen() {
                   onPress={() => sendMessage(s)}
                   activeOpacity={0.75}
                 >
-                  <BlurView intensity={20} tint="light" style={styles.chipGlass}>
+                  <BlurView intensity={30} tint="light" style={styles.chipGlass}>
                     <Text style={[styles.suggestionText, { color: colors.primary }]}>{s}</Text>
                   </BlurView>
                 </TouchableOpacity>
@@ -241,20 +238,20 @@ export default function AIScreen() {
         )}
 
         <View style={[styles.inputContainer, { paddingBottom: bottomPadding + 8 }]}>
-          <BlurView intensity={30} tint="light" style={styles.inputBar}>
+          <BlurView intensity={60} tint="light" style={styles.inputBar}>
             <TextInput
               style={styles.textInput}
               value={input}
               onChangeText={setInput}
-              placeholder="Ask your private banker..."
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholder={t.aiPlaceholder}
+              placeholderTextColor={colors.mutedForeground}
               multiline
               maxLength={500}
               returnKeyType="send"
               onSubmitEditing={() => sendMessage(input)}
             />
             <TouchableOpacity
-              style={[styles.sendButton, { backgroundColor: input.trim() ? colors.primary : "rgba(255,255,255,0.1)" }]}
+              style={[styles.sendButton, { backgroundColor: input.trim() ? colors.primary : colors.border }]}
               onPress={() => sendMessage(input)}
               disabled={!input.trim() || isTyping}
             >
@@ -263,52 +260,46 @@ export default function AIScreen() {
           </BlurView>
         </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     zIndex: 10,
   },
-  headerGlass: {
+  headerContent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    overflow: "hidden",
     gap: 14,
   },
   headerIcon: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   headerText: { flex: 1 },
   headerTitle: {
-    fontSize: 18,
-    fontFamily: "Outfit_700Bold",
-    color: "#fff",
+    fontSize: 20,
+    fontFamily: "Inter_700Bold",
     letterSpacing: -0.5,
   },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
-  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#10b981" },
+  statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 1 },
+  statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#10b981" },
   headerSubtitle: {
-    fontSize: 11,
-    fontFamily: "Outfit_400Regular",
-    color: "rgba(255,255,255,0.5)",
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   messagesList: {
     paddingHorizontal: 16,
-    paddingTop: 24,
+    paddingTop: 10,
     paddingBottom: 20,
     gap: 16,
   },
@@ -329,33 +320,33 @@ const styles = StyleSheet.create({
   },
   bubbleUser: {
     borderBottomRightRadius: 4,
-    backgroundColor: "rgba(16, 185, 129, 0.4)",
+    backgroundColor: "rgba(16, 185, 129, 0.5)",
   },
   bubbleAssistant: {
     borderBottomLeftRadius: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
   },
   bubbleText: {
-    fontSize: 16,
-    fontFamily: "Outfit_400Regular",
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
     lineHeight: 22,
   },
   thinkingBubble: {
-    width: 80,
+    width: 85,
   },
   typingIndicator: {
     flexDirection: "row",
-    gap: 4,
+    gap: 5,
     justifyContent: "center",
     alignItems: "center",
     height: 20,
   },
-  dot: { width: 6, height: 6, borderRadius: 3 },
+  dot: { width: 7, height: 7, borderRadius: 4 },
   suggestionsContainer: { paddingHorizontal: 16, marginBottom: 12 },
   suggestionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   suggestionChip: { borderRadius: 20, overflow: "hidden" },
-  chipGlass: { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
-  suggestionText: { fontSize: 13, fontFamily: "Outfit_700Bold" },
+  chipGlass: { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  suggestionText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   inputContainer: { paddingHorizontal: 16, paddingTop: 10 },
   inputBar: {
     flexDirection: "row",
@@ -364,14 +355,14 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: "rgba(255,255,255,0.3)",
     overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
   textInput: {
     flex: 1,
-    color: "#fff",
     fontSize: 16,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Inter_400Regular",
     maxHeight: 100,
     outlineStyle: "none" as any,
   },
@@ -384,4 +375,3 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 });
-
