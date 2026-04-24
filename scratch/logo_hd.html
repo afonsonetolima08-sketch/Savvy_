@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@900&family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: transparent; }
+  .logo-container {
+    background: linear-gradient(135deg, #01241c 0%, #064e3b 50%, #10b981 100%);
+    width: 1024px; height: 1024px;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    border-radius: 120px;
+    position: relative;
+    box-shadow: 0 50px 100px rgba(0,0,0,0.5);
+  }
+  .brand-group {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+  }
+  .main-text {
+    color: white;
+    font-family: 'Playfair Display', serif;
+    font-size: 320px;
+    letter-spacing: -10px;
+    margin: 0;
+    line-height: 0.8;
+  }
+  .dollar-icon {
+    position: absolute;
+    top: -40px;
+    left: 70px;
+    background: white;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    color: #01241c;
+    font-family: 'Outfit', sans-serif;
+    font-size: 60px;
+    font-weight: 900;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+  }
+  .arrow-icon {
+    position: absolute;
+    bottom: 40px;
+    right: -40px;
+    color: white;
+    font-size: 100px;
+  }
+  .subtitle {
+    color: white;
+    font-family: 'Outfit', sans-serif;
+    font-size: 80px;
+    font-weight: 900;
+    letter-spacing: 35px;
+    margin-top: 40px;
+    margin-left: 35px;
+    opacity: 0.9;
+  }
+</style>
+</head>
+<body>
+  <div class="logo-container">
+    <div class="brand-group">
+      <div class="dollar-icon">$</div>
+      <h1 class="main-text">SAVVY</h1>
+      <div class="arrow-icon">📈</div>
+    </div>
+    <div class="subtitle">FINANCE</div>
+  </div>
+</body>
+</html>

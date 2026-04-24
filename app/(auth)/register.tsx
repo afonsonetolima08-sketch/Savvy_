@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 import { supabase } from "@/utils/supabase";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function RegisterScreen() {
   const colors = useColors();
@@ -98,11 +99,7 @@ export default function RegisterScreen() {
     >
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 40, paddingBottom: 40 }]}>
         <View style={styles.logoContainer}>
-          <Image 
-            source={require("@/assets/images/logo.png")} 
-            style={styles.logoImage} 
-            resizeMode="contain" 
-          />
+          <BrandLogo style={styles.logoImage} />
         </View>
         <Text style={[styles.title, { color: colors.foreground }]}>Cria a tua conta</Text>
         <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>

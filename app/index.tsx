@@ -29,6 +29,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useT } from "@/hooks/useTranslations";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const isServer = typeof window === "undefined";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = isServer 
@@ -248,7 +249,7 @@ export default function WelcomeScreen() {
               </TouchableOpacity>
               
               <View style={styles.footerBranding}>
-                 <Image source={require("@/assets/images/logo.png")} style={styles.footerLogo} resizeMode="contain" />
+                 <BrandLogo style={styles.footerLogo} />
                  <Text style={styles.footerLegal}>© 2024 DESIGNED FOR FINANCIAL FREEDOM</Text>
               </View>
            </BlurView>
