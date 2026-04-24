@@ -1,8 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -12,6 +13,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, { 
+  FadeInDown, 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withRepeat, 
+  withSequence, 
+  withTiming 
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
@@ -19,10 +28,6 @@ import { useColors } from "@/hooks/useColors";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useT } from "@/hooks/useTranslations";
 import { getMonthlyStats } from "@/utils/finance";
-
-const API_BASE = process.env.EXPO_PUBLIC_DOMAIN
-  ? `https://${process.env.EXPO_PUBLIC_DOMAIN}`
-  : "http://localhost:8080";
 
 interface Message {
   id: string;
@@ -48,13 +53,34 @@ export default function AIScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
+  // Animation values for "thinking" state
+  const thinkingGlow = useSharedValue(0.4);
+  
+  useEffect(() => {
+    if (isTyping) {
+      thinkingGlow.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1000 }),
+          withTiming(0.4, { duration: 1000 })
+        ),
+        -1,
+        true
+      );
+    } else {
+      thinkingGlow.value = 0.4;
+    }
+  }, [isTyping]);
+
+  const animatedThinkingStyle = useAnimatedStyle(() => ({
+    opacity: thinkingGlow.value,
+    transform: [{ scale: thinkingGlow.value * 0.1 + 0.95 }]
+  }));
+
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
-  // Account for the absolute Tab Bar height (84 on Web, 60 on mobile)
   const bottomPadding = Platform.OS === "web" ? 84 : insets.bottom + 60;
 
   const stats = getMonthlyStats(transactions);
-  const savingsRate =
-    stats.income > 0 ? ((stats.income - stats.expenses) / stats.income) * 100 : 0;
+  const savingsRate = stats.income > 0 ? ((stats.income - stats.expenses) / stats.income) * 100 : 0;
 
   const financialContext = {
     name: profile.name,
@@ -91,37 +117,22 @@ export default function AIScreen() {
       setMessages((prev) => [...prev, userMsg]);
       setIsTyping(true);
 
-      // Local Fake AI Logic
       setTimeout(() => {
         const lower = trimmed.toLowerCase();
         let reply = "";
         
         if (lower.includes("poupar") || lower.includes("save") || lower.includes("poupança") || lower.includes("épargner") || lower.includes("ahorrar")) {
-           reply = t.aiResponseSaving
-             .replace("{rate}", financialContext.savingsRate.toFixed(1))
-             .replace("{objective}", financialContext.objective || t.notDefined);
+           reply = t.aiResponseSaving.replace("{rate}", financialContext.savingsRate.toFixed(1)).replace("{objective}", financialContext.objective || t.notDefined);
         } else if (lower.includes("gasto") || lower.includes("spend") || lower.includes("expense") || lower.includes("análise") || lower.includes("analisa") || lower.includes("dépense")) {
-           reply = t.aiResponseSpending
-             .replace("{currency}", financialContext.currency)
-             .replace("{expenses}", financialContext.expenses.toFixed(2))
-             .replace("{income}", financialContext.income.toFixed(2))
-             .replace("{balance}", financialContext.balance.toFixed(2));
+           reply = t.aiResponseSpending.replace("{currency}", financialContext.currency).replace("{expenses}", financialContext.expenses.toFixed(2)).replace("{income}", financialContext.income.toFixed(2)).replace("{balance}", financialContext.balance.toFixed(2));
         } else if (lower.includes("investir") || lower.includes("invest") || lower.includes("investimento")) {
-           if (financialContext.patrimony > 1000) {
-             reply = t.aiResponseInvesting
-               .replace("{currency}", financialContext.currency)
-               .replace("{patrimony}", financialContext.patrimony.toFixed(2));
-           } else {
-             reply = t.aiResponseInvestingStart;
-           }
+           reply = financialContext.patrimony > 1000 ? t.aiResponseInvesting.replace("{currency}", financialContext.currency).replace("{patrimony}", financialContext.patrimony.toFixed(2)) : t.aiResponseInvestingStart;
         } else if (lower.includes("dívida") || lower.includes("debt") || lower.includes("reduzir") || lower.includes("devo") || lower.includes("dette")) {
            reply = t.aiResponseDebt;
         } else {
            const defaults = [
              t.aiResponseDefault1.replace("{currency}", financialContext.currency).replace("{balance}", financialContext.balance.toFixed(2)),
-             t.aiResponseDefault2,
-             t.aiResponseDefault3,
-             t.aiResponseDefault4,
+             t.aiResponseDefault2, t.aiResponseDefault3, t.aiResponseDefault4,
            ];
            reply = defaults[Math.floor(Math.random() * defaults.length)];
         }
@@ -129,8 +140,7 @@ export default function AIScreen() {
         const assistantMsg: Message = { id: makeId(), role: "assistant", content: reply };
         setMessages((prev) => [...prev, assistantMsg]);
         setIsTyping(false);
-      }, 1500); 
-      
+      }, 1800); 
     },
     [isTyping, financialContext]
   );
@@ -138,52 +148,48 @@ export default function AIScreen() {
   const suggestions = [t.aiSuggestion1, t.aiSuggestion2, t.aiSuggestion3, t.aiSuggestion4];
   const showSuggestions = messages.length <= 1;
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  const renderMessage = ({ item, index }: { item: Message, index: number }) => {
     const isUser = item.role === "user";
     return (
-      <View style={[styles.messageRow, isUser && styles.messageRowUser]}>
-        {!isUser && (
-          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Feather name="cpu" size={14} color="#fff" />
-          </View>
-        )}
-        <View
+      <Animated.View 
+        entering={FadeInDown.springify().delay(index * 100)}
+        style={[styles.messageRow, isUser && styles.messageRowUser]}
+      >
+        <BlurView 
+          intensity={isUser ? 40 : 20} 
+          tint="light" 
           style={[
             styles.bubble,
-            isUser
-              ? [styles.bubbleUser, { backgroundColor: colors.primary }]
-              : [styles.bubbleAssistant, { backgroundColor: colors.card, borderColor: colors.border }],
+            isUser ? styles.bubbleUser : styles.bubbleAssistant,
+            { borderColor: isUser ? colors.primary + "40" : "rgba(255,255,255,0.1)" }
           ]}
         >
-          <Text
-            style={[
-              styles.bubbleText,
-              { color: isUser ? "#fff" : colors.foreground },
-            ]}
-          >
+          <Text style={[styles.bubbleText, { color: isUser ? "#fff" : "rgba(255,255,255,0.9)" }]}>
             {item.content}
           </Text>
-        </View>
-      </View>
+        </BlurView>
+      </Animated.View>
     );
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: topPadding + 12, backgroundColor: colors.background, borderBottomColor: colors.border },
-        ]}
-      >
-        <View style={[styles.headerIcon, { backgroundColor: colors.primary + "18" }]}>
-          <Feather name="cpu" size={18} color={colors.primary} />
-        </View>
-        <View style={styles.headerText}>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t.aiTitle}</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.mutedForeground }]}>{t.aiSubtitle}</Text>
-        </View>
+    <LinearGradient 
+      colors={["#011511", "#01241c", "#000000"]} 
+      style={styles.container}
+    >
+      <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
+        <BlurView intensity={30} tint="light" style={styles.headerGlass}>
+          <View style={[styles.headerIcon, { backgroundColor: colors.primary + "30" }]}>
+            <Feather name="shield" size={18} color={colors.primary} />
+          </View>
+          <View style={styles.headerText}>
+            <Text style={styles.headerTitle}>Savvy Private Banker</Text>
+            <View style={styles.statusRow}>
+              <View style={styles.statusDot} />
+              <Text style={styles.headerSubtitle}>Proactive Intelligence Active</Text>
+            </View>
+          </View>
+        </BlurView>
       </View>
 
       <KeyboardAvoidingView
@@ -191,224 +197,191 @@ export default function AIScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
-        {/* Messages */}
         <FlatList
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={renderMessage}
-          contentContainerStyle={[
-            styles.messagesList,
-            { paddingBottom: showSuggestions ? 16 : 16 },
-          ]}
+          contentContainerStyle={styles.messagesList}
           showsVerticalScrollIndicator={false}
-          onContentSizeChange={scrollToBottom}
           ListFooterComponent={
             isTyping ? (
-              <View style={[styles.messageRow]}>
-                <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-                  <Feather name="cpu" size={14} color="#fff" />
-                </View>
-                <View style={[styles.bubble, styles.bubbleAssistant, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <View style={styles.typingIndicator}>
-                    <ActivityIndicator size="small" color={colors.primary} />
-                    <Text style={[styles.typingText, { color: colors.mutedForeground }]}>{t.aiTyping}</Text>
-                  </View>
-                </View>
-              </View>
+              <Animated.View style={styles.messageRow} entering={FadeInDown}>
+                <Animated.View style={[styles.thinkingBubble, animatedThinkingStyle]}>
+                  <BlurView intensity={20} tint="light" style={styles.bubble}>
+                    <View style={styles.typingIndicator}>
+                      <View style={[styles.dot, { backgroundColor: colors.primary }]} />
+                      <View style={[styles.dot, { backgroundColor: colors.primary, opacity: 0.6 }]} />
+                      <View style={[styles.dot, { backgroundColor: colors.primary, opacity: 0.3 }]} />
+                    </View>
+                  </BlurView>
+                </Animated.View>
+              </Animated.View>
             ) : null
           }
         />
 
-        {/* Suggestion chips */}
         {showSuggestions && (
           <View style={styles.suggestionsContainer}>
             <View style={styles.suggestionsRow}>
               {suggestions.map((s, i) => (
                 <TouchableOpacity
                   key={i}
-                  style={[styles.suggestionChip, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  style={styles.suggestionChip}
                   onPress={() => sendMessage(s)}
                   activeOpacity={0.75}
                 >
-                  <Text style={[styles.suggestionText, { color: colors.primary }]}>{s}</Text>
+                  <BlurView intensity={20} tint="light" style={styles.chipGlass}>
+                    <Text style={[styles.suggestionText, { color: colors.primary }]}>{s}</Text>
+                  </BlurView>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         )}
 
-        {/* Input bar */}
-        <View
-          style={[
-            styles.inputBar,
-            {
-              backgroundColor: colors.card,
-              borderTopColor: colors.border,
-              paddingBottom: bottomPadding + 8,
-            },
-          ]}
-        >
-          <TextInput
-            style={[
-              styles.textInput,
-              {
-                backgroundColor: colors.background,
-                color: colors.foreground,
-                borderColor: colors.border,
-              },
-            ]}
-            value={input}
-            onChangeText={setInput}
-            placeholder={t.aiPlaceholder}
-            placeholderTextColor={colors.mutedForeground}
-            multiline
-            maxLength={500}
-            returnKeyType="send"
-            onSubmitEditing={() => sendMessage(input)}
-            blurOnSubmit
-          />
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              {
-                backgroundColor: input.trim() && !isTyping ? colors.primary : colors.border,
-              },
-            ]}
-            onPress={() => sendMessage(input)}
-            disabled={!input.trim() || isTyping}
-            activeOpacity={0.8}
-          >
-            <Feather name="send" size={18} color="#fff" />
-          </TouchableOpacity>
+        <View style={[styles.inputContainer, { paddingBottom: bottomPadding + 8 }]}>
+          <BlurView intensity={30} tint="light" style={styles.inputBar}>
+            <TextInput
+              style={styles.textInput}
+              value={input}
+              onChangeText={setInput}
+              placeholder="Ask your private banker..."
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              multiline
+              maxLength={500}
+              returnKeyType="send"
+              onSubmitEditing={() => sendMessage(input)}
+            />
+            <TouchableOpacity
+              style={[styles.sendButton, { backgroundColor: input.trim() ? colors.primary : "rgba(255,255,255,0.1)" }]}
+              onPress={() => sendMessage(input)}
+              disabled={!input.trim() || isTyping}
+            >
+              <Feather name="arrow-up" size={20} color="#fff" />
+            </TouchableOpacity>
+          </BlurView>
         </View>
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
+    paddingHorizontal: 16,
+    zIndex: 10,
+  },
+  headerGlass: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    gap: 12,
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    overflow: "hidden",
+    gap: 14,
   },
   headerIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   headerText: { flex: 1 },
   headerTitle: {
-    fontSize: 17,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.3,
+    fontSize: 18,
+    fontFamily: "Outfit_700Bold",
+    color: "#fff",
+    letterSpacing: -0.5,
   },
+  statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#10b981" },
   headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 1,
+    fontSize: 11,
+    fontFamily: "Outfit_400Regular",
+    color: "rgba(255,255,255,0.5)",
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   messagesList: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    gap: 12,
+    paddingTop: 24,
+    paddingBottom: 20,
+    gap: 16,
   },
   messageRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
     marginBottom: 4,
   },
   messageRowUser: {
-    flexDirection: "row-reverse",
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
+    justifyContent: "flex-end",
   },
   bubble: {
-    maxWidth: "80%",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
+    maxWidth: "85%",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 24,
+    borderWidth: 1,
+    overflow: "hidden",
   },
   bubbleUser: {
     borderBottomRightRadius: 4,
+    backgroundColor: "rgba(16, 185, 129, 0.4)",
   },
   bubbleAssistant: {
     borderBottomLeftRadius: 4,
-    borderWidth: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
   bubbleText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 20,
+    fontSize: 16,
+    fontFamily: "Outfit_400Regular",
+    lineHeight: 22,
+  },
+  thinkingBubble: {
+    width: 80,
   },
   typingIndicator: {
     flexDirection: "row",
+    gap: 4,
+    justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    height: 20,
   },
-  typingText: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-  },
-  suggestionsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  suggestionsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  suggestionChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  suggestionText: {
-    fontSize: 13,
-    fontFamily: "Inter_500Medium",
-  },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  suggestionsContainer: { paddingHorizontal: 16, marginBottom: 12 },
+  suggestionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  suggestionChip: { borderRadius: 20, overflow: "hidden" },
+  chipGlass: { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  suggestionText: { fontSize: 13, fontFamily: "Outfit_700Bold" },
+  inputContainer: { paddingHorizontal: 16, paddingTop: 10 },
   inputBar: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    gap: 10,
-    borderTopWidth: 1,
+    alignItems: "center",
+    padding: 8,
+    paddingLeft: 20,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    overflow: "hidden",
   },
   textInput: {
     flex: 1,
-    borderRadius: 22,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    maxHeight: 120,
-    lineHeight: 20,
+    color: "#fff",
+    fontSize: 16,
+    fontFamily: "Outfit_400Regular",
+    maxHeight: 100,
     outlineStyle: "none" as any,
   },
   sendButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: 10,
   },
 });
+
