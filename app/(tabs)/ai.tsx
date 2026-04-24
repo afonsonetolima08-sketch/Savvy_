@@ -156,15 +156,18 @@ export default function AIScreen() {
         style={[styles.messageRow, isUser && styles.messageRowUser]}
       >
         <BlurView 
-          intensity={isUser ? 40 : 20} 
-          tint="light" 
+          intensity={Platform.OS === 'ios' ? 40 : 80} 
+          tint={isUser ? "dark" : "light"} 
           style={[
             styles.bubble,
             isUser ? styles.bubbleUser : styles.bubbleAssistant,
-            { borderColor: isUser ? colors.primary + "40" : "rgba(255,255,255,0.1)" }
+            { 
+              borderColor: isUser ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+              backgroundColor: isUser ? colors.primary : "rgba(255,255,255,0.8)" 
+            }
           ]}
         >
-          <Text style={[styles.bubbleText, { color: isUser ? "#fff" : "rgba(255,255,255,0.9)" }]}>
+          <Text style={[styles.bubbleText, { color: isUser ? "#fff" : "#1a1a1a" }]}>
             {item.content}
           </Text>
         </BlurView>
