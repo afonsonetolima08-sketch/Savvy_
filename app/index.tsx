@@ -248,7 +248,7 @@ export default function WelcomeScreen() {
               </TouchableOpacity>
               
               <View style={styles.footerBranding}>
-                 <Text style={styles.footerBrandName}>SAVVY</Text>
+                 <Image source={require("@/assets/images/logo.png")} style={styles.footerLogo} resizeMode="contain" />
                  <Text style={styles.footerLegal}>© 2024 DESIGNED FOR FINANCIAL FREEDOM</Text>
               </View>
            </BlurView>
@@ -535,12 +535,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  footerBrandName: {
-    color: COLORS.white,
-    fontFamily: "Outfit_900Black",
-    fontSize: 32,
-    letterSpacing: 8,
-    opacity: 0.1,
+  footerLogo: {
+    width: 140,
+    height: 60,
+    opacity: 0.8,
   },
   footerLegal: {
     color: "rgba(255,255,255,0.2)",

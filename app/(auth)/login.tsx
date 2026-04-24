@@ -12,6 +12,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -113,9 +114,13 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={[styles.content, { paddingTop: insets.top + 40 }]}>
-        {/* Icon */}
-        <View style={[styles.iconContainer, { backgroundColor: colors.primary + "15" }]}>
-          <Feather name="lock" size={32} color={colors.primary} />
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require("@/assets/images/logo.png")} 
+            style={styles.logoImage} 
+            resizeMode="contain" 
+          />
         </View>
 
         <Text style={[styles.title, { color: colors.foreground }]}>{STRINGS.title}</Text>
@@ -308,13 +313,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: "center",
   },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+  logoContainer: {
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
+    marginBottom: 32,
+  },
+  logoImage: {
+    width: 180,
+    height: 80,
   },
   title: {
     fontSize: 28,
