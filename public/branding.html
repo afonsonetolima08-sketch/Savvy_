@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savvy Branding • Gerador de Logo HD</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@900&family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #01241c;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255,255,255,0.05);
+            padding: 40px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        #logo-canvas {
+            display: none;
+        }
+        .preview-box {
+            margin-bottom: 30px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        button {
+            background: #10b981;
+            color: #01241c;
+            border: none;
+            padding: 18px 36px;
+            font-size: 18px;
+            font-weight: 900;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: scale(1.05);
+            background: #34d399;
+        }
+        p { opacity: 0.6; margin-top: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="margin-bottom: 10px;">Savvy Branding</h1>
+        <p style="margin-bottom: 30px; opacity: 1;">Gerador de Ativos em Alta Resolução</p>
+        
+        <div class="preview-box" id="svg-wrap">
+            <!-- SVG LOGO -->
+            <svg id="mysvg" width="600" height="240" viewBox="0 0 600 240" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#01241c"/>
+                        <stop offset="100%" stop-color="#064e3b"/>
+                    </linearGradient>
+                </defs>
+                <rect width="600" height="240" rx="30" fill="url(#g)"/>
+                <circle cx="100" cy="80" r="35" fill="white"/>
+                <text x="100" y="93" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="45" fill="#01241c">$</text>
+                <text x="325" y="140" text-anchor="middle" font-family="'Playfair Display', serif" font-weight="900" font-size="160" fill="white">SAVVY</text>
+                <text x="325" y="205" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="35" letter-spacing="35" fill="white" opacity="0.8">FINANCE</text>
+            </svg>
+        </div>
+
+        <button onclick="downloadPNG()">Descarregar Logo HD (.png)</button>
+        <p>A imagem será gerada com 2400px de largura para qualidade máxima.</p>
+    </div>
+
+    <canvas id="logo-canvas" width="2400" height="960"></canvas>
+
+    <script>
+        function downloadPNG() {
+            const canvas = document.getElementById('logo-canvas');
+            const ctx = canvas.getContext('2d');
+            const svg = document.getElementById('mysvg');
+            const xml = new XMLSerializer().serializeToString(svg);
+            const svg64 = btoa(unescape(encodeURIComponent(xml)));
+            const b64Start = 'data:image/svg+xml;base64,';
+            const image64 = b64Start + svg64;
+
+            const img = new Image();
+            img.onload = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, 2400, 960);
+                const pngUrl = canvas.toDataURL("image/png");
+                const downloadLink = document.createElement("a");
+                downloadLink.href = pngUrl;
+                downloadLink.download = "savvy-logo-hd.png";
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            };
+            img.src = image64;
+        }
+    </script>
+</body>
+</html>
