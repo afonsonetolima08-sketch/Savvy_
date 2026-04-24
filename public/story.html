@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savvy • Story Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Outfit', sans-serif; color: white; }
+        .story-wrapper {
+            width: 360px; height: 640px; /* 9:16 aspect ratio at display scale */
+            background: linear-gradient(135deg, #01241c 0%, #064e3b 50%, #01241c 100%);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+        }
+        .logo-wrap { margin-top: 80px; display: flex; justify-content: center; }
+        .main-content { padding: 40px; text-align: center; margin-top: 40px; }
+        .headline { font-family: 'Playfair Display', serif; font-size: 36px; line-height: 1.1; margin-bottom: 20px; }
+        .tagline { font-size: 14px; letter-spacing: 5px; opacity: 0.6; font-weight: 900; margin-bottom: 60px; }
+        .ui-preview { 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: left;
+            transform: rotate(-3deg) translateY(20px);
+        }
+        .ui-row { height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; margin-bottom: 10px; width: 60%; }
+        .ui-row.long { width: 90%; }
+        .ui-circle { width: 30px; height: 30px; border-radius: 15px; background: #10b981; margin-bottom: 15px; }
+        
+        .cta-overlay { position: absolute; bottom: 60px; width: 100%; text-align: center; }
+        .cta-box { background: white; color: #01241c; padding: 12px 30px; border-radius: 50px; display: inline-block; font-weight: 900; font-size: 14px; letter-spacing: 1px; }
+
+        button { margin-top: 30px; background: #10b981; color: #01241c; border: none; padding: 15px 30px; border-radius: 50px; font-weight: 900; cursor: pointer; }
+        #capture-canvas { display: none; }
+    </style>
+</head>
+<body>
+    <div class="story-wrapper" id="story">
+        <div class="logo-wrap">
+            <svg width="200" height="80" viewBox="0 0 600 240" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="115" cy="75" r="28" fill="white"/>
+                <text x="115" y="85" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="32" fill="#01241c">$</text>
+                <text x="300" y="140" text-anchor="middle" font-family="serif" font-weight="900" font-size="160" fill="white">SAVVY</text>
+                <path d="M470 115 L495 90 L510 105 L540 70 M540 70 L515 70 M540 70 L540 95" stroke="white" stroke-width="10" fill="none"/>
+                <text x="300" y="210" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="35" letter-spacing="35" fill="white" opacity="0.9">FINANCE</text>
+            </svg>
+        </div>
+
+        <div class="main-content">
+            <div class="headline">Financial Intelligence<br>for the Elite.</div>
+            <div class="tagline">OPTIMISE EVERYTHING</div>
+            
+            <div class="ui-preview">
+                <div class="ui-circle"></div>
+                <div class="ui-row"></div>
+                <div class="ui-row long"></div>
+                <div class="ui-row long" style="opacity: 0.5"></div>
+            </div>
+        </div>
+
+        <div class="cta-overlay">
+            <div class="cta-box">LINK NA BIO</div>
+        </div>
+    </div>
+
+    <button onclick="downloadStory()">Descarregar Story HD</button>
+    <canvas id="capture-canvas" width="1080" height="1920"></canvas>
+
+    <script>
+        function downloadStory() {
+            const canvas = document.getElementById('capture-canvas');
+            const ctx = canvas.getContext('2d');
+            const story = document.getElementById('story');
+            
+            // Note: Simple canvas drawing for demo, in production we'd use html2canvas or similar.
+            // For now, let's provide a high-res link to the branding page which can be screenshotted 
+            // OR draw the elements on canvas.
+            
+            // To make it bulletproof without external libs, let's draw the background and logo
+            ctx.fillStyle = "#01241c";
+            ctx.fillRect(0,0,1080,1920);
+            
+            // Gradient
+            const grad = ctx.createLinearGradient(0,0,1080,1920);
+            grad.addColorStop(0, "#01241c");
+            grad.addColorStop(0.5, "#064e3b");
+            grad.addColorStop(1, "#01241c");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0,0,1080,1920);
+
+            // Large White Logo
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.font = "900 280px serif";
+            ctx.fillText("SAVVY", 540, 400);
+            
+            ctx.font = "900 60px sans-serif";
+            ctx.letterSpacing = "60px";
+            ctx.fillText("FINANCE", 540, 520);
+            
+            // Text
+            ctx.letterSpacing = "0px";
+            ctx.font = "900 80px serif";
+            ctx.fillText("Intelligence", 540, 950);
+            ctx.fillText("for the Elite.", 540, 1060);
+            
+            // CTA
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.roundRect(280, 1650, 520, 100, 50);
+            ctx.fill();
+            
+            ctx.fillStyle = "#01241c";
+            ctx.font = "900 45px sans-serif";
+            ctx.fillText("LINK NA BIO", 540, 1715);
+
+            const pngUrl = canvas.toDataURL("image/png");
+            const downloadLink = document.createElement("a");
+            downloadLink.href = pngUrl;
+            downloadLink.download = "savvy-story-hd.png";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    </script>
+</body>
+</html>
