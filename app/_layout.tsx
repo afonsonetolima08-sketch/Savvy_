@@ -98,21 +98,21 @@ export default function RootLayout() {
     <SafeAreaProvider>
       {Platform.OS === "web" && (
         <Head>
-          <title>Savvy • Elite Financial Intelligence</title>
-          <meta name="description" content="Master your wealth with Savvy. Intelligent management, proactive AI, and global sync." />
+          <title>Savvy • Inteligência Financeira de Elite</title>
+          <meta name="description" content="Domina o teu património com a Savvy. Gestão inteligente, IA proativa e sincronização global." />
           
           {/* Open Graph / Facebook */}
           <meta property="og:type" content="website" />
           <meta property="og:url" content="https://savvy-expand.vercel.app/" />
-          <meta property="og:title" content="Savvy • Elite Financial Intelligence" />
-          <meta property="og:description" content="Master your wealth with Savvy. Intelligent management, proactive AI, and global sync for your financial freedom." />
+          <meta property="og:title" content="Savvy • Inteligência Financeira de Elite" />
+          <meta property="og:description" content="Domina o teu património com a Savvy. Gestão inteligente, IA proativa e sincronização global para a tua liberdade financeira." />
           <meta property="og:image" content="https://savvy-expand.vercel.app/og-image.png" />
 
           {/* Twitter */}
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:url" content="https://savvy-expand.vercel.app/" />
-          <meta name="twitter:title" content="Savvy • Elite Financial Intelligence" />
-          <meta name="twitter:description" content="Master your wealth with Savvy. Intelligent management, proactive AI, and global sync." />
+          <meta name="twitter:title" content="Savvy • Inteligência Financeira de Elite" />
+          <meta name="twitter:description" content="Domina o teu património com a Savvy. Gestão inteligente, IA proativa e sincronização global." />
           <meta name="twitter:image" content="https://savvy-expand.vercel.app/og-image.png" />
           
           <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2301241c'/%3E%3Ccircle cx='30' cy='30' r='18' fill='white'/%3E%3Ctext x='30' y='38' text-anchor='middle' font-family='sans-serif' font-weight='900' font-size='22' fill='%2301241c'%3E$%3C/text%3E%3Ctext x='50' y='80' text-anchor='middle' font-family='serif' font-weight='900' font-size='60' fill='white'%3ES%3C/text%3E%3C/svg%3E" />
