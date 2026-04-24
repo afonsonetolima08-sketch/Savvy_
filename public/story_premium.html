@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savvy • Story Premium AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Outfit', sans-serif; color: white; }
+        .canvas-container { position: relative; width: 360px; height: 640px; box-shadow: 0 50px 100px rgba(0,0,0,0.8); }
+        #render-source {
+            width: 100%; height: 100%;
+            background: #011511;
+            background-image: 
+                radial-gradient(circle at 50% 20%, rgba(16, 185, 129, 0.4) 0%, transparent 60%),
+                radial-gradient(circle at 10% 80%, rgba(6, 78, 59, 0.5) 0%, transparent 70%);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .header { margin-top: 60px; text-align: center; width: 80%; }
+        .headline { font-family: 'Playfair Display', serif; font-size: 34px; line-height: 1.1; margin-bottom: 10px; font-weight: 900; }
+        
+        .mockup-container {
+            margin-top: 30px;
+            width: 80%;
+            height: 380px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 30px;
+            backdrop-filter: blur(25px);
+            padding: 15px;
+            box-shadow: 0 40px 60px rgba(0,0,0,0.6);
+            position: relative;
+        }
+
+        .ai-header { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+        .ai-dot { width: 8px; height: 8px; background: #10b981; border-radius: 4px; box-shadow: 0 0 10px #10b981; }
+        .ai-text { font-size: 10px; font-weight: 900; letter-spacing: 1px; opacity: 0.6; }
+
+        .bubble { background: rgba(255,255,255,0.1); padding: 12px; border-radius: 12px; border-bottom-left-radius: 2px; margin-bottom: 10px; width: 80%; }
+        .bubble.user { background: rgba(16,185,129,0.3); align-self: flex-end; margin-left: auto; border-bottom-left-radius: 12px; border-bottom-right-radius: 2px; }
+        .line { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-bottom: 6px; }
+
+        .footer { position: absolute; bottom: 50px; width: 100%; text-align: center; }
+        .cta-btn { background: white; color: #011511; padding: 14px 40px; border-radius: 50px; font-weight: 900; font-size: 16px; display: inline-block; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .url { margin-top: 15px; font-size: 12px; opacity: 0.5; font-weight: 700; letter-spacing: 1px; }
+
+        .controls { margin-top: 40px; }
+        button { background: #10b981; color: white; border: none; padding: 15px 40px; border-radius: 50px; font-family: 'Outfit', sans-serif; font-weight: 900; cursor: pointer; font-size: 16px; }
+        #canvas-output { display: none; }
+    </style>
+</head>
+<body>
+    <div class="canvas-container" id="story-node">
+        <div id="render-source">
+            <div class="header">
+                <div class="headline">O teu banqueiro<br>privado no bolso.</div>
+                <div style="width: 40px; height: 3px; background: #10b981; margin: 15px auto;"></div>
+            </div>
+
+            <div class="mockup-container">
+                <div class="ai-header">
+                    <div class="ai-dot"></div>
+                    <div class="ai-text">SAVVY AI INTELLIGENCE</div>
+                </div>
+                <div class="bubble">
+                    <div class="line" style="width: 90%"></div>
+                    <div class="line" style="width: 70%"></div>
+                    <div class="line" style="width: 80%; opacity: 0.5;"></div>
+                </div>
+                <div class="bubble user">
+                    <div class="line" style="width: 90%"></div>
+                    <div class="line" style="width: 50%"></div>
+                </div>
+                <div class="bubble" style="margin-top: 10px;">
+                    <div class="line" style="width: 95%; background: #10b981;"></div>
+                    <div class="line" style="width: 40%; background: #10b981;"></div>
+                </div>
+            </div>
+
+            <div class="footer">
+                <div class="cta-btn">Experimenta grátis</div>
+                <div class="url">savvy-expand.vercel.app</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="downloadLarge()">DESCARREGAR STORY HD (1080x1920)</button>
+    </div>
+
+    <canvas id="canvas-output" width="1080" height="1920"></canvas>
+
+    <script>
+        function downloadLarge() {
+            const canvas = document.getElementById('canvas-output');
+            const ctx = canvas.getContext('2d');
+            
+            // 1. Background
+            const grad = ctx.createLinearGradient(0,0,0,1920);
+            grad.addColorStop(0, "#011511");
+            grad.addColorStop(1, "#000");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0,0,1080,1920);
+
+            // Glows
+            const glow = ctx.createRadialGradient(540, 400, 0, 540, 400, 1000);
+            glow.addColorStop(0, "rgba(16, 185, 129, 0.4)");
+            glow.addColorStop(1, "transparent");
+            ctx.fillStyle = glow;
+            ctx.fillRect(0,0,1080,1920);
+
+            // Top Headline
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.font = "900 110px serif"; // Playfair Display
+            ctx.fillText("O teu banqueiro", 540, 300);
+            ctx.fillText("privado no bolso.", 540, 420);
+
+            // Divider
+            ctx.fillStyle = "#10b981";
+            ctx.fillRect(490, 480, 100, 10);
+
+            // Mockup Box
+            ctx.save();
+            ctx.translate(140, 580);
+            ctx.fillStyle = "rgba(255,255,255,0.08)";
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 800, 1000, 80);
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,0.15)";
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            
+            // Bubbles inside mockup
+            ctx.fillStyle = "rgba(255,255,255,0.1)";
+            ctx.beginPath(); ctx.roundRect(60, 180, 500, 180, 30); ctx.fill();
+            
+            ctx.fillStyle = "rgba(16,185,129,0.3)";
+            ctx.beginPath(); ctx.roundRect(240, 400, 500, 140, 30); ctx.fill();
+            
+            ctx.fillStyle = "rgba(16,185,129,0.5)";
+            ctx.beginPath(); ctx.roundRect(60, 580, 600, 240, 30); ctx.fill();
+            ctx.restore();
+
+            // Footer
+            // Button
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.roundRect(240, 1680, 600, 120, 60);
+            ctx.fill();
+            ctx.fillStyle = "#011511";
+            ctx.font = "900 50px sans-serif";
+            ctx.fillText("Experimenta grátis", 540, 1755);
+
+            // Link
+            ctx.fillStyle = "rgba(255,255,255,0.5)";
+            ctx.font = "900 40px sans-serif";
+            ctx.letterSpacing = "2px";
+            ctx.fillText("savvy-expand.vercel.app", 540, 1860);
+
+            const pngUrl = canvas.toDataURL("image/png");
+            const downloadLink = document.createElement("a");
+            downloadLink.href = pngUrl;
+            downloadLink.download = "savvy-story-elite-ai.png";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    </script>
+</body>
+</html>
