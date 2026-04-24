@@ -139,16 +139,16 @@ export default function WelcomeScreen() {
             <Animated.View entering={FadeInDown.springify().delay(200)} style={styles.badgeWrap}>
               <BlurView intensity={25} tint="light" style={styles.glassBadge}>
                 <View style={styles.badgeDot} />
-                <Text style={styles.badgeText}>SISTEMA DE ELITE SAVVY</Text>
+                <Text style={styles.badgeText}>SAVVY ELITE SYSTEM</Text>
               </BlurView>
             </Animated.View>
 
             <Animated.Text entering={FadeInUp.springify().delay(400)} style={styles.heroTitle}>
-              O Futuro das tuas Finanças é Hoje.
+              The Future of Your Finances starts Today.
             </Animated.Text>
             
             <Animated.Text entering={FadeInUp.springify().delay(600)} style={styles.heroSubtitle}>
-              Sincroniza o teu património global, automatiza poupanças e deixa a nossa IA guiar cada cêntimo.
+              Sync your global assets, automate your savings, and let our AI guide every penny.
             </Animated.Text>
 
             <Animated.View entering={FadeInUp.springify().delay(800)}>
@@ -158,7 +158,7 @@ export default function WelcomeScreen() {
                   start={{x: 0, y: 0}} end={{x: 1, y: 1}}
                   style={styles.ctaButton}
                 >
-                   <Text style={styles.ctaText}>Iniciar Evolução</Text>
+                   <Text style={styles.ctaText}>Start Evolution</Text>
                    <Feather name="zap" size={24} color={COLORS.forest} />
                 </LinearGradient>
               </TouchableOpacity>
@@ -166,32 +166,32 @@ export default function WelcomeScreen() {
           </Animated.View>
           
           <View style={styles.scrollTip}>
-             <Text style={styles.scrollTipText}>EXPLORAR</Text>
+             <Text style={styles.scrollTipText}>EXPLORE</Text>
              <Feather name="chevron-down" size={20} color="rgba(255,255,255,0.3)" />
           </View>
         </View>
 
         {/* FEATURES - GLASSMARPHISM 3.0 */}
         <View style={styles.benefitsSection}>
-           <Text style={styles.sectionHeading}>Tecnologia que cria Liberdade</Text>
+           <Text style={styles.sectionHeading}>Technology Creating Freedom</Text>
            
            <View style={styles.benefitsGrid}>
               {[
                 { 
-                  title: "IA Preditiva", 
-                  desc: "Antecipa tendências de mercado e gastos antes de acontecerem.",
+                  title: "Predictive AI", 
+                  desc: "Anticipate market trends and spending patterns before they even happen.",
                   icon: "activity",
                   delay: 200
                 },
                 { 
-                  title: "Ativos Globais", 
-                  desc: "Consolida Crypto, Stocks e Imobiliário numa única interface premium.",
+                  title: "Global Assets", 
+                  desc: "Consolidate Crypto, Stocks, and Property into a single premium interface.",
                   icon: "briefcase",
                   delay: 400
                 },
                 { 
-                  title: "Segurança Militar", 
-                  desc: "Encriptação ponta-a-ponta para que os teus dados nunca saiam das tuas mãos.",
+                  title: "Elite Security", 
+                  desc: "End-to-end encryption to ensure your data stays strictly in your hands.",
                   icon: "lock",
                   delay: 600
                 }
@@ -224,15 +224,15 @@ export default function WelcomeScreen() {
                  <BlurView intensity={20} tint="light" style={styles.aiBubble}>
                     <Text style={styles.aiBubbleTitle}>SAVVY AI AGENT</Text>
                     <Text style={styles.aiBubbleText}>
-                       "Detectei uma oportunidade de otimização fiscal de **240€** nos teus investimentos recentes. Queres automatizar a declaração?"
+                       "I've detected a tax optimisation opportunity of **£240** on your recent investments. Shall I automate the filing?"
                     </Text>
                  </BlurView>
               </View>
               
               <View style={styles.aiTextContainer}>
-                 <Text style={styles.aiHighlightTitle}>Inteligência Proativa</Text>
+                 <Text style={styles.aiHighlightTitle}>Proactive Intelligence</Text>
                  <Text style={styles.aiHighlightDesc}>
-                    Não somos apenas um tracker. Somos um agente ativo que trabalha 24/7 para encontrar dinheiro onde antes havia apenas confusão.
+                    We aren't just a tracker. We're an active agent working 24/7 to find capital where there was only confusion.
                  </Text>
               </View>
            </View>
@@ -240,12 +240,12 @@ export default function WelcomeScreen() {
 
         {/* FINAL CONVERSION */}
         <View style={styles.finalSection}>
-           <BlurView intensity={10} tint="light" style={styles.finalBox}>
-              <Text style={styles.finalMainTitle}>Junta-te à elite financeira.</Text>
-              <Text style={styles.finalSubText}>Centenas de utilizadores já automatizaram o seu futuro com a Savvy.</Text>
+            <BlurView intensity={10} tint="light" style={styles.finalBox}>
+              <Text style={styles.finalMainTitle}>Join the financial elite.</Text>
+              <Text style={styles.finalSubText}>Hundreds of users have already automated their future with Savvy.</Text>
               
               <TouchableOpacity onPress={handleStart} activeOpacity={0.9} style={styles.finalCta}>
-                 <Text style={styles.finalCtaText}>Criar Conta Agora</Text>
+                 <Text style={styles.finalCtaText}>Create Account Now</Text>
               </TouchableOpacity>
               
               <View style={styles.footerBranding}>
