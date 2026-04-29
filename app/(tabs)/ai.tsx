@@ -12,14 +12,18 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  StatusBar,
+  Dimensions,
 } from "react-native";
 import Animated, { 
   FadeInDown, 
+  FadeInRight,
   useAnimatedStyle, 
   useSharedValue, 
   withRepeat, 
   withSequence, 
-  withTiming 
+  withTiming,
+  withDelay,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -27,57 +31,66 @@ import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useT } from "@/hooks/useTranslations";
-import { getMonthlyStats } from "@/utils/finance";
+import { getMonthlyStats, getCategoryBreakdown, getMonthTransactions, formatCurrency } from "@/utils/finance";
+import { BrandLogo } from "@/components/BrandLogo";
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  isTyping?: boolean;
 }
 
 function makeId() {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 }
 
+const COLORS = {
+  forest: "#01241c",
+  deepEmerald: "#064e3b",
+  neonEmerald: "#10b981",
+  brightMint: "#34d399",
+  white: "#ffffff",
+  textMuted: "#a7f3d0",
+};
+
 export default function AIScreen() {
   const colors = useColors();
   const t = useT();
   const insets = useSafeAreaInsets();
   const { profile, transactions, effectivePatrimony } = useApp();
-  const { convert } = useCurrency();
+  const { convert, currency } = useCurrency();
 
   const [messages, setMessages] = useState<Message[]>([
     { id: "welcome", role: "assistant", content: t.aiWelcome },
   ]);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
-  // Animation values for "thinking" state
-  const thinkingGlow = useSharedValue(0.4);
-  
+  // Animation values for background mesh
+  const orb1Y = useSharedValue(100);
+  const orb2Y = useSharedValue(SCREEN_HEIGHT - 300);
+  const headerGlow = useSharedValue(0);
+
   useEffect(() => {
-    if (isTyping) {
-      thinkingGlow.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 1000 }),
-          withTiming(0.4, { duration: 1000 })
-        ),
-        -1,
-        true
-      );
+    orb1Y.value = withRepeat(withTiming(300, { duration: 15000 }), -1, true);
+    orb2Y.value = withRepeat(withTiming(SCREEN_HEIGHT - 600, { duration: 18000 }), -1, true);
+  }, []);
+
+  useEffect(() => {
+    if (isThinking) {
+      headerGlow.value = withRepeat(withTiming(1, { duration: 1000 }), -1, true);
     } else {
-      thinkingGlow.value = 0.4;
+      headerGlow.value = withTiming(0);
     }
-  }, [isTyping]);
+  }, [isThinking]);
 
-  const animatedThinkingStyle = useAnimatedStyle(() => ({
-    opacity: thinkingGlow.value,
-    transform: [{ scale: thinkingGlow.value * 0.1 + 0.95 }]
-  }));
-
-  const topPadding = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPadding = Platform.OS === "web" ? 84 : insets.bottom + 60;
+  const animatedOrb1 = useAnimatedStyle(() => ({ transform: [{ translateY: orb1Y.value }] }));
+  const animatedOrb2 = useAnimatedStyle(() => ({ transform: [{ translateY: orb2Y.value }] }));
+  const animatedHeaderGlow = useAnimatedStyle(() => ({ opacity: headerGlow.value }));
 
   const stats = getMonthlyStats(transactions);
   const savingsRate = stats.income > 0 ? ((stats.income - stats.expenses) / stats.income) * 100 : 0;
@@ -93,6 +106,7 @@ export default function AIScreen() {
     expenses: convert(stats.expenses),
     patrimony: convert(effectivePatrimony),
     savingsRate,
+    transactions,
   };
 
   const scrollToBottom = useCallback(() => {
@@ -101,164 +115,204 @@ export default function AIScreen() {
     }, 100);
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping, scrollToBottom]);
+  // --- SMART AI REASONING ENGINE ---
+  const generateSmartResponse = (userInput: string): string => {
+    const text = userInput.toLowerCase();
+    const firstName = profile.name?.split(" ")[0] || "";
+
+    // 1. ANALYSIS OF SPENDING
+    if (text.includes("gasto") || text.includes("spend") || text.includes("expense") || text.includes("analisa")) {
+      const monthTxs = getMonthTransactions(transactions).filter(tx => tx.type === "expense");
+      const breakdown = getCategoryBreakdown(monthTxs);
+      const topCategoryEntry = Object.entries(breakdown).sort((a, b) => b[1] - a[1])[0];
+
+      if (topCategoryEntry) {
+        const [cat, amount] = topCategoryEntry;
+        const catName = t[`cat${cat.charAt(0).toUpperCase() + cat.slice(1)}` as keyof typeof t] || cat;
+        const percent = ((amount / financialContext.income) * 100).toFixed(0);
+        
+        return `${firstName ? firstName + ", a" : "A"} minha análise indica que este mês gastaste **${formatCurrency(amount, currency, true)}** em **${catName}**, o que representa **${percent}%** do teu rendimento mensal. \n\nSugiro que definas um limite de **${formatCurrency(amount * 0.8, currency, true)}** para esta categoria no próximo mês. Isso permitiria poupar mais **${formatCurrency(amount * 0.2, currency, true)}** mensais.`;
+      }
+      return `Ainda não tenho dados suficientes sobre os teus gastos deste mês para uma análise profunda. Regista as tuas primeiras transações e eu ajudarei a otimizar o teu orçamento!`;
+    }
+
+    // 2. SAVINGS ADVICE
+    if (text.includes("poupar") || text.includes("save") || text.includes("poupança")) {
+      const targetRate = 20;
+      const currentRate = financialContext.savingsRate;
+      const diff = targetRate - currentRate;
+
+      if (diff > 0) {
+        const needed = (financialContext.income * (targetRate / 100)) - (financialContext.income - financialContext.expenses);
+        return `Atualmente, a tua taxa de poupança é de **${currentRate.toFixed(1)}%**. Para atingires a meta ideal de **20%**, precisas de poupar mais **${formatCurrency(needed, currency, true)}** este mês.\n\nUma estratégia de elite? Aplica a regra **50/30/20**: 50% para necessidades, 30% para desejos e 20% diretamente para o teu futuro.`;
+      }
+      return `Incrível! A tua taxa de poupança atual é de **${currentRate.toFixed(1)}%**, o que é excelente. Como o teu objetivo é **${t[`obj${financialContext.objective.charAt(0).toUpperCase() + financialContext.objective.slice(1)}` as keyof typeof t] || financialContext.objective}**, podes começar a considerar investimentos mais agressivos com o teu excedente.`;
+    }
+
+    // 3. INVESTING STRATEGY
+    if (text.includes("investir") || text.includes("invest") || text.includes("investimento")) {
+      if (financialContext.patrimony < financialContext.expenses * 3) {
+        return `Antes de investires, recomendo que solidifiques o teu **Fundo de Emergência**. O ideal é teres **${formatCurrency(financialContext.expenses * 6, currency, true)}** (6 meses de despesas) líquidos antes de entrares no mercado de capitais.`;
+      }
+      
+      const suggestedStock = financialContext.patrimony * 0.15;
+      return `Com um património de **${formatCurrency(financialContext.patrimony, currency, true)}**, estás numa posição sólida. \n\nSugiro alocar **${formatCurrency(suggestedStock, currency, true)}** (15%) em ETFs globais para diversificação automática. Queres que analise o teu perfil de risco para uma recomendação mais específica?`;
+    }
+
+    // 4. DEBT ANALYSIS
+    if (text.includes("dívida") || text.includes("debt") || text.includes("devo")) {
+      if (profile.debts > 0) {
+        const debtRatio = (profile.debts / (financialContext.monthlyIncome * 12)) * 100;
+        return `Notei que tens uma dívida total de **${formatCurrency(profile.debts, currency, true)}**. Isto representa **${debtRatio.toFixed(1)}%** do teu rendimento anual previsto. \n\nRecomendo o **Método Avalanche**: foca todos os teus recursos extras na dívida com a maior taxa de juro, enquanto manténs os pagamentos mínimos nas outras.`;
+      }
+      return `Não detetei dívidas ativas no teu perfil. Isto coloca-te numa vantagem estratégica enorme para acelerar a tua independência financeira!`;
+    }
+
+    // 5. DEFAULT AGENTIC RESPONSES
+    const agentDefaults = [
+      `Analisei o teu resumo financeiro e o teu saldo atual é de **${formatCurrency(financialContext.balance, currency, true)}**. O que queres que eu otimize agora?`,
+      `Estou a monitorizar as tuas transações 24/7. De momento, a tua saúde financeira está estável, mas podemos melhorar a tua alocação de ativos. Queres ver como?`,
+      `Como o teu assistente de elite, o meu objetivo é maximizar a tua liberdade. Baseado no teu perfil, a maior oportunidade hoje está em **reduzir gastos recorrentes**.`,
+    ];
+    return agentDefaults[Math.floor(Math.random() * agentDefaults.length)];
+  };
 
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
-      if (!trimmed || isTyping) return;
+      if (!trimmed || isThinking) return;
 
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setInput("");
 
       const userMsg: Message = { id: makeId(), role: "user", content: trimmed };
       setMessages((prev) => [...prev, userMsg]);
-      setIsTyping(true);
+      setIsThinking(true);
 
+      // AI Reasoning Step
       setTimeout(() => {
-        const lower = trimmed.toLowerCase();
-        let reply = "";
-        
-        if (lower.includes("poupar") || lower.includes("save") || lower.includes("poupança") || lower.includes("épargner") || lower.includes("ahorrar")) {
-           reply = t.aiResponseSaving.replace("{rate}", financialContext.savingsRate.toFixed(1)).replace("{objective}", financialContext.objective || t.notDefined);
-        } else if (lower.includes("gasto") || lower.includes("spend") || lower.includes("expense") || lower.includes("análise") || lower.includes("analisa") || lower.includes("dépense")) {
-           reply = t.aiResponseSpending.replace("{currency}", financialContext.currency).replace("{expenses}", financialContext.expenses.toFixed(2)).replace("{income}", financialContext.income.toFixed(2)).replace("{balance}", financialContext.balance.toFixed(2));
-        } else if (lower.includes("investir") || lower.includes("invest") || lower.includes("investimento")) {
-           reply = financialContext.patrimony > 1000 ? t.aiResponseInvesting.replace("{currency}", financialContext.currency).replace("{patrimony}", financialContext.patrimony.toFixed(2)) : t.aiResponseInvestingStart;
-        } else if (lower.includes("dívida") || lower.includes("debt") || lower.includes("reduzir") || lower.includes("devo") || lower.includes("dette")) {
-           reply = t.aiResponseDebt;
-        } else {
-           const defaults = [
-             t.aiResponseDefault1.replace("{currency}", financialContext.currency).replace("{balance}", financialContext.balance.toFixed(2)),
-             t.aiResponseDefault2, t.aiResponseDefault3, t.aiResponseDefault4,
-           ];
-           reply = defaults[Math.floor(Math.random() * defaults.length)];
-        }
-
-        const assistantMsg: Message = { id: makeId(), role: "assistant", content: reply };
+        const reply = generateSmartResponse(trimmed);
+        const assistantMsg: Message = { id: makeId(), role: "assistant", content: reply, isTyping: true };
         setMessages((prev) => [...prev, assistantMsg]);
-        setIsTyping(false);
-      }, 1800); 
+        setIsThinking(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }, 1200); 
     },
-    [isTyping, financialContext]
+    [isThinking, financialContext, t, currency]
   );
 
   const suggestions = [t.aiSuggestion1, t.aiSuggestion2, t.aiSuggestion3, t.aiSuggestion4];
-  const showSuggestions = messages.length <= 1;
 
   const renderMessage = ({ item, index }: { item: Message, index: number }) => {
     const isUser = item.role === "user";
     return (
       <Animated.View 
-        entering={FadeInDown.springify().delay(index * 100)}
+        entering={FadeInDown.springify().delay(index * 50)}
         style={[styles.messageRow, isUser && styles.messageRowUser]}
       >
         <BlurView 
-          intensity={Platform.OS === 'ios' ? 40 : 80} 
-          tint={isUser ? "dark" : "light"} 
+          intensity={isUser ? 20 : 40} 
+          tint="light" 
           style={[
             styles.bubble,
             isUser ? styles.bubbleUser : styles.bubbleAssistant,
-            { 
-              borderColor: isUser ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
-              backgroundColor: isUser ? colors.primary : "rgba(255,255,255,0.8)" 
-            }
+            { borderColor: isUser ? "rgba(255,255,255,0.2)" : "rgba(16, 185, 129, 0.2)" }
           ]}
         >
-          <Text style={[styles.bubbleText, { color: isUser ? "#fff" : "#1a1a1a" }]}>
-            {item.content}
-          </Text>
+          {isUser ? (
+            <Text style={styles.bubbleTextUser}>{item.content}</Text>
+          ) : (
+            <TypewriterText content={item.content} onComplete={scrollToBottom} />
+          )}
         </BlurView>
       </Animated.View>
     );
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
-        <View style={styles.headerContent}>
-          <View style={[styles.headerIcon, { backgroundColor: colors.primary + "15" }]}>
-            <Feather name="cpu" size={20} color={colors.primary} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      
+      {/* CINEMATIC BACKGROUND */}
+      <View style={StyleSheet.absoluteFill}>
+        <LinearGradient colors={[COLORS.forest, COLORS.deepEmerald]} style={StyleSheet.absoluteFill} />
+        <Animated.View style={[styles.glowOrb, styles.orb1, animatedOrb1]} />
+        <Animated.View style={[styles.glowOrb, styles.orb2, animatedOrb2]} />
+        <BlurView intensity={Platform.OS === "web" ? 0 : 60} tint="dark" style={StyleSheet.absoluteFill} />
+      </View>
+
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <BlurView intensity={20} tint="light" style={styles.headerGlass}>
+          <BrandLogo style={styles.headerLogo} />
+          <View style={styles.statusContainer}>
+            <Animated.View style={[styles.statusGlow, animatedHeaderGlow]} />
+            <View style={[styles.statusDot, { backgroundColor: isThinking ? COLORS.brightMint : COLORS.neonEmerald }]} />
+            <Text style={styles.statusText}>{isThinking ? "A ANALISAR..." : "SISTEMA ATIVO"}</Text>
           </View>
-          <View style={styles.headerText}>
-            <Text style={[styles.headerTitle, { color: colors.foreground }]}>Savvy AI Agent</Text>
-            <View style={styles.statusRow}>
-              <View style={styles.statusDot} />
-              <Text style={[styles.headerSubtitle, { color: colors.mutedForeground }]}>Proactive Intelligence</Text>
-            </View>
-          </View>
-        </View>
+        </BlurView>
       </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <FlatList
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={renderMessage}
-          contentContainerStyle={styles.messagesList}
+          contentContainerStyle={[styles.messagesList, { paddingBottom: 100 }]}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={
-            isTyping ? (
+            isThinking ? (
               <Animated.View style={styles.messageRow} entering={FadeInDown}>
-                <Animated.View style={[styles.thinkingBubble, animatedThinkingStyle]}>
-                  <BlurView intensity={30} tint="light" style={styles.bubble}>
-                    <View style={styles.typingIndicator}>
-                      <View style={[styles.dot, { backgroundColor: colors.primary }]} />
-                      <View style={[styles.dot, { backgroundColor: colors.primary, opacity: 0.6 }]} />
-                      <View style={[styles.dot, { backgroundColor: colors.primary, opacity: 0.3 }]} />
-                    </View>
-                  </BlurView>
-                </Animated.View>
+                <BlurView intensity={20} tint="light" style={styles.thinkingBubble}>
+                  <TypingIndicator />
+                </BlurView>
               </Animated.View>
             ) : null
           }
         />
 
-        {showSuggestions && (
-          <View style={styles.suggestionsContainer}>
-            <View style={styles.suggestionsRow}>
+        <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 10 }]}>
+          {messages.length < 3 && (
+            <View style={styles.suggestionsScroll}>
               {suggestions.map((s, i) => (
                 <TouchableOpacity
                   key={i}
                   style={styles.suggestionChip}
                   onPress={() => sendMessage(s)}
-                  activeOpacity={0.75}
+                  activeOpacity={0.7}
                 >
                   <BlurView intensity={30} tint="light" style={styles.chipGlass}>
-                    <Text style={[styles.suggestionText, { color: colors.primary }]}>{s}</Text>
+                    <Text style={styles.suggestionText}>{s}</Text>
                   </BlurView>
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
-        )}
+          )}
 
-        <View style={[styles.inputContainer, { paddingBottom: bottomPadding + 8 }]}>
-          <BlurView intensity={60} tint="light" style={styles.inputBar}>
+          <BlurView intensity={40} tint="light" style={styles.inputBar}>
             <TextInput
               style={styles.textInput}
               value={input}
               onChangeText={setInput}
               placeholder={t.aiPlaceholder}
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor="rgba(255,255,255,0.4)"
               multiline
               maxLength={500}
-              returnKeyType="send"
-              onSubmitEditing={() => sendMessage(input)}
             />
             <TouchableOpacity
-              style={[styles.sendButton, { backgroundColor: input.trim() ? colors.primary : colors.border }]}
+              style={[styles.sendButton, { opacity: input.trim() ? 1 : 0.5 }]}
               onPress={() => sendMessage(input)}
-              disabled={!input.trim() || isTyping}
+              disabled={!input.trim() || isThinking}
             >
-              <Feather name="arrow-up" size={20} color="#fff" />
+              <LinearGradient 
+                colors={[COLORS.neonEmerald, COLORS.brightMint]} 
+                style={styles.sendGradient}
+              >
+                <Feather name="zap" size={18} color={COLORS.forest} />
+              </LinearGradient>
             </TouchableOpacity>
           </BlurView>
         </View>
@@ -267,55 +321,100 @@ export default function AIScreen() {
   );
 }
 
+function TypewriterText({ content, onComplete }: { content: string, onComplete: () => void }) {
+  const [displayed, setDisplayed] = useState("");
+  const index = useRef(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (index.current < content.length) {
+        setDisplayed((prev) => prev + content[index.current]);
+        index.current += 1;
+        if (index.current % 5 === 0) onComplete();
+      } else {
+        clearInterval(timer);
+        onComplete();
+      }
+    }, 12);
+    return () => clearInterval(timer);
+  }, [content]);
+
+  // Handle Markdown-style bolding **text**
+  const renderFormattedText = (text: string) => {
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return (
+          <Text key={i} style={styles.boldText}>
+            {part.slice(2, -2)}
+          </Text>
+        );
+      }
+      return part;
+    });
+  };
+
+  return <Text style={styles.bubbleTextAssistant}>{renderFormattedText(displayed)}</Text>;
+}
+
+function TypingIndicator() {
+  const dot1 = useSharedValue(0.4);
+  const dot2 = useSharedValue(0.4);
+  const dot3 = useSharedValue(0.4);
+
+  useEffect(() => {
+    dot1.value = withRepeat(withSequence(withTiming(1, { duration: 400 }), withTiming(0.4, { duration: 400 })), -1);
+    dot2.value = withDelay(200, withRepeat(withSequence(withTiming(1, { duration: 400 }), withTiming(0.4, { duration: 400 })), -1));
+    dot3.value = withDelay(400, withRepeat(withSequence(withTiming(1, { duration: 400 }), withTiming(0.4, { duration: 400 })), -1));
+  }, []);
+
+  const s1 = useAnimatedStyle(() => ({ opacity: dot1.value, transform: [{ scale: dot1.value }] }));
+  const s2 = useAnimatedStyle(() => ({ opacity: dot2.value, transform: [{ scale: dot2.value }] }));
+  const s3 = useAnimatedStyle(() => ({ opacity: dot3.value, transform: [{ scale: dot3.value }] }));
+
+  return (
+    <View style={styles.typingContainer}>
+      <Animated.View style={[styles.dot, s1]} />
+      <Animated.View style={[styles.dot, s2]} />
+      <Animated.View style={[styles.dot, s3]} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
+  container: { flex: 1, backgroundColor: COLORS.forest },
+  glowOrb: { position: "absolute", width: 300, height: 300, borderRadius: 150, opacity: 0.2 },
+  orb1: { backgroundColor: COLORS.neonEmerald, top: -50, right: -100 },
+  orb2: { backgroundColor: COLORS.deepEmerald, bottom: 50, left: -100 },
+  header: { paddingHorizontal: 16, zIndex: 100 },
+  headerGlass: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    zIndex: 10,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    overflow: "hidden",
   },
-  headerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
+  headerLogo: { width: 100, height: 30 },
+  statusContainer: { flexDirection: "row", alignItems: "center", gap: 8 },
+  statusGlow: { 
+    position: "absolute", 
+    width: 20, height: 20, 
+    borderRadius: 10, 
+    backgroundColor: COLORS.neonEmerald, 
+    left: -6, 
   },
-  headerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerText: { flex: 1 },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.5,
-  },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 1 },
-  statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#10b981" },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  messagesList: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 20,
-    gap: 16,
-  },
-  messageRow: {
-    flexDirection: "row",
-    marginBottom: 4,
-  },
-  messageRowUser: {
-    justifyContent: "flex-end",
-  },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  statusText: { color: COLORS.white, fontSize: 10, fontFamily: "Outfit_700Bold", letterSpacing: 1 },
+  messagesList: { paddingHorizontal: 16, paddingTop: 20, gap: 16 },
+  messageRow: { flexDirection: "row", marginBottom: 4 },
+  messageRowUser: { justifyContent: "flex-end" },
   bubble: {
     maxWidth: "85%",
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 24,
     borderWidth: 1,
@@ -323,58 +422,42 @@ const styles = StyleSheet.create({
   },
   bubbleUser: {
     borderBottomRightRadius: 4,
-    backgroundColor: "rgba(16, 185, 129, 0.5)",
+    backgroundColor: "rgba(16, 185, 129, 0.3)",
   },
   bubbleAssistant: {
     borderBottomLeftRadius: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
-  bubbleText: {
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 22,
-  },
-  thinkingBubble: {
-    width: 85,
-  },
-  typingIndicator: {
-    flexDirection: "row",
-    gap: 5,
-    justifyContent: "center",
-    alignItems: "center",
-    height: 20,
-  },
-  dot: { width: 7, height: 7, borderRadius: 4 },
-  suggestionsContainer: { paddingHorizontal: 16, marginBottom: 12 },
-  suggestionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  bubbleTextUser: { color: COLORS.white, fontSize: 16, fontFamily: "Inter_500Medium", lineHeight: 24 },
+  bubbleTextAssistant: { color: COLORS.textMuted, fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 24 },
+  boldText: { fontFamily: "Inter_700Bold", color: COLORS.white },
+  thinkingBubble: { padding: 15, borderRadius: 20, width: 80, alignItems: "center", overflow: "hidden" },
+  typingContainer: { flexDirection: "row", gap: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.brightMint },
+  bottomSection: { position: "absolute", bottom: 0, width: "100%", paddingHorizontal: 16 },
+  suggestionsScroll: { flexDirection: "row", gap: 10, marginBottom: 15 },
   suggestionChip: { borderRadius: 20, overflow: "hidden" },
-  chipGlass: { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
-  suggestionText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  inputContainer: { paddingHorizontal: 16, paddingTop: 10 },
+  chipGlass: { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  suggestionText: { color: COLORS.white, fontSize: 13, fontFamily: "Inter_600SemiBold" },
   inputBar: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 8,
+    padding: 6,
     paddingLeft: 20,
-    borderRadius: 30,
+    borderRadius: 32,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: "rgba(255,255,255,0.15)",
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
   textInput: {
     flex: 1,
+    color: COLORS.white,
     fontSize: 16,
     fontFamily: "Inter_400Regular",
-    maxHeight: 100,
-    outlineStyle: "none" as any,
+    maxHeight: 120,
+    paddingVertical: 10,
   },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 10,
-  },
+  sendButton: { width: 44, height: 44, borderRadius: 22, overflow: "hidden", marginLeft: 8 },
+  sendGradient: { flex: 1, alignItems: "center", justifyContent: "center" },
 });
