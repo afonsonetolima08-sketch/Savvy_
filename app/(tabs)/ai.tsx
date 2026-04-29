@@ -123,7 +123,7 @@ export default function AIScreen() {
             "Authorization": `Bearer ${API_KEY}`,
           },
           body: JSON.stringify({
-            model: "gpt-3.5-turbo", // Or gpt-4o
+            model: "gpt-4o-mini",
             messages: [
               { role: "system", content: fullSystemPrompt },
               ...history.slice(-10).map(m => ({ role: m.role, content: m.content })),
