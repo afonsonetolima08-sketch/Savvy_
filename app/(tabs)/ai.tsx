@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
   StatusBar,
+  Alert,
 } from "react-native";
 import Animated, { 
   FadeInDown, 
@@ -35,7 +36,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 
 interface Message {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
   isTyping?: boolean;
 }
@@ -43,6 +44,13 @@ interface Message {
 function makeId() {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 }
+
+// --- SYSTEM PERSONA ---
+const SYSTEM_PROMPT = `És o Savvy AI, um assistente financeiro de elite, proativo e estratégico. 
+O teu tom é profissional, encorajador e direto ao ponto. 
+Deves usar os dados do utilizador para dar conselhos específicos. 
+Sempre que possível, sugere ações concretas para poupar ou investir. 
+Nunca dás conselhos genéricos se tiveres dados para analisar.`;
 
 export default function AIScreen() {
   const colors = useColors();
@@ -76,16 +84,12 @@ export default function AIScreen() {
 
   const financialContext = {
     name: profile.name,
-    language: profile.language,
-    objective: profile.mainObjective,
-    monthlyIncome: convert(profile.monthlyIncome),
-    currency: profile.currency,
     balance: convert(stats.balance),
     income: convert(stats.income),
     expenses: convert(stats.expenses),
     patrimony: convert(effectivePatrimony),
     savingsRate,
-    transactions,
+    objective: profile.mainObjective,
   };
 
   const scrollToBottom = useCallback(() => {
@@ -94,11 +98,24 @@ export default function AIScreen() {
     }, 100);
   }, []);
 
-  const generateSmartResponse = (userInput: string): string => {
-    const text = userInput.toLowerCase();
+  // --- CHAT GPT STYLE BRAIN ---
+  const callAIAgent = async (userMessage: string, history: Message[]) => {
+    const text = userMessage.toLowerCase();
     const firstName = profile.name?.split(" ")[0] || "";
 
-    if (text.includes("gasto") || text.includes("spend") || text.includes("expense") || text.includes("analisa")) {
+    // 1. Check for real API Key (Future proofing)
+    const API_KEY = process.env.EXPO_PUBLIC_AI_API_KEY;
+    if (API_KEY) {
+      // Here we would implement the real fetch to OpenAI/Gemini
+      // For now, we continue with our high-fidelity mock
+    }
+
+    // 2. High-Fidelity Mock with Conversational Context
+    // We check the history to see if the user is following up
+    const isFollowUp = history.length > 2;
+    const lastMsg = history[history.length - 1]?.content.toLowerCase() || "";
+
+    if (text.includes("gasto") || text.includes("spend") || text.includes("analisa")) {
       const monthTxs = getMonthTransactions(transactions).filter(tx => tx.type === "expense");
       const breakdown = getCategoryBreakdown(monthTxs);
       const topCategoryEntry = Object.entries(breakdown).sort((a, b) => b[1] - a[1])[0];
@@ -106,29 +123,24 @@ export default function AIScreen() {
       if (topCategoryEntry) {
         const [cat, amount] = topCategoryEntry;
         const catName = t[`cat${cat.charAt(0).toUpperCase() + cat.slice(1)}` as keyof typeof t] || cat;
-        const percent = ((amount / financialContext.income) * 100).toFixed(0);
-        return `${firstName ? firstName + ", a" : "A"} minha análise indica que este mês gastaste **${formatCurrency(amount, currency, true)}** em **${catName}**, o que representa **${percent}%** do teu rendimento mensal. \n\nSugiro que definas um limite de **${formatCurrency(amount * 0.8, currency, true)}** para esta categoria no próximo mês.`;
+        return `Analisando os teus movimentos mais recentes, notei que **${catName}** é a tua maior despesa, com um total de **${formatCurrency(amount, currency, true)}**. \n\nIsto representa **${((amount / financialContext.income) * 100).toFixed(0)}%** do teu rendimento. Queres que explore formas de otimizar esta categoria específica?`;
       }
-      return `Ainda não tenho dados suficientes sobre os teus gastos deste mês para uma análise profunda.`;
     }
 
-    if (text.includes("poupar") || text.includes("save") || text.includes("poupança")) {
-      const currentRate = financialContext.savingsRate;
-      return `Atualmente, a tua taxa de poupança é de **${currentRate.toFixed(1)}%**. \n\nUma estratégia de elite? Aplica a regra **50/30/20**: 50% para necessidades, 30% para desejos e 20% diretamente para o teu futuro.`;
+    if (text.includes("poupar") || text.includes("save") || (isFollowUp && lastMsg.includes("gasto"))) {
+      return `Com base no teu saldo atual de **${formatCurrency(financialContext.balance, currency, true)}**, sugiro que apliques a regra **50/30/20**. \n\nDeverias estar a direcionar **${formatCurrency(financialContext.income * 0.2, currency, true)}** diretamente para poupança. Queres definir um alerta automático para quando ultrapassares este limite?`;
     }
 
-    if (text.includes("investir") || text.includes("invest") || text.includes("investimento")) {
-      if (financialContext.patrimony < financialContext.expenses * 3) {
-        return `Antes de investires, recomendo que solidifiques o teu **Fundo de Emergência**. O ideal é teres **${formatCurrency(financialContext.expenses * 6, currency, true)}** líquidos antes de entrares no mercado.`;
-      }
-      return `Com um património de **${formatCurrency(financialContext.patrimony, currency, true)}**, estás numa posição sólida. Sugiro alocar uma parte em ETFs globais para diversificação automática.`;
+    if (text.includes("investir") || text.includes("investimento")) {
+      return `Como o teu objetivo é **${t[`obj${financialContext.objective.charAt(0).toUpperCase() + financialContext.objective.slice(1)}` as keyof typeof t] || financialContext.objective}**, o investimento estratégico é a tua melhor ferramenta. \n\nCom o teu património atual de **${formatCurrency(financialContext.patrimony, currency, true)}**, tens margem para alocar 10-15% em ativos de baixo risco. Gostarias de ver uma simulação de crescimento?`;
     }
 
-    const agentDefaults = [
-      `Analisei o teu resumo financeiro e o teu saldo atual é de **${formatCurrency(financialContext.balance, currency, true)}**. Como posso ajudar-te hoje?`,
-      `Estou a monitorizar as tuas transações. Queres que analise alguma categoria específica?`,
-    ];
-    return agentDefaults[Math.floor(Math.random() * agentDefaults.length)];
+    // Contextual response for general chat
+    if (isFollowUp) {
+      return `Entendo perfeitamente o teu ponto sobre isso. Considerando a tua estratégia de **${t[`obj${financialContext.objective.charAt(0).toUpperCase() + financialContext.objective.slice(1)}` as keyof typeof t] || financialContext.objective}**, o mais importante agora é manter a consistência. Há mais algum detalhe sobre os teus **${formatCurrency(financialContext.expenses, currency, true)}** de despesa este mês que queiras discutir?`;
+    }
+
+    return `Olá ${firstName}! Analisei o teu perfil e estou pronto para otimizar as tuas finanças. Podes perguntar-me sobre os teus gastos, estratégias de poupança ou como atingir o teu objetivo de **${t[`obj${financialContext.objective.charAt(0).toUpperCase() + financialContext.objective.slice(1)}` as keyof typeof t] || financialContext.objective}**.`;
   };
 
   const sendMessage = useCallback(
@@ -140,21 +152,25 @@ export default function AIScreen() {
       setInput("");
 
       const userMsg: Message = { id: makeId(), role: "user", content: trimmed };
-      setMessages((prev) => [...prev, userMsg]);
+      const newMessages = [...messages, userMsg];
+      setMessages(newMessages);
       setIsThinking(true);
 
-      setTimeout(() => {
-        const reply = generateSmartResponse(trimmed);
+      setTimeout(async () => {
+        const reply = await callAIAgent(trimmed, newMessages);
         const assistantMsg: Message = { id: makeId(), role: "assistant", content: reply, isTyping: true };
         setMessages((prev) => [...prev, assistantMsg]);
         setIsThinking(false);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }, 1000); 
     },
-    [isThinking, financialContext, t, currency]
+    [isThinking, messages, financialContext, currency, t]
   );
 
-  const suggestions = [t.aiSuggestion1, t.aiSuggestion2, t.aiSuggestion3, t.aiSuggestion4];
+  const resetChat = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setMessages([{ id: "welcome", role: "assistant", content: t.aiWelcome }]);
+  };
 
   const renderMessage = ({ item, index }: { item: Message, index: number }) => {
     const isUser = item.role === "user";
@@ -186,12 +202,17 @@ export default function AIScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={[styles.headerBox, { borderBottomColor: colors.border }]}>
           <BrandLogo style={styles.headerLogo} />
-          <View style={styles.statusContainer}>
-            <Animated.View style={[styles.statusGlow, { backgroundColor: colors.primary }, animatedHeaderGlow]} />
-            <View style={[styles.statusDot, { backgroundColor: isThinking ? colors.primary : "#10b981" }]} />
-            <Text style={[styles.statusText, { color: colors.mutedForeground }]}>
-              {isThinking ? "A ANALISAR..." : "SISTEMA ATIVO"}
-            </Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={resetChat} style={styles.actionBtn}>
+               <Feather name="refresh-cw" size={18} color={colors.mutedForeground} />
+            </TouchableOpacity>
+            <View style={styles.statusContainer}>
+              <Animated.View style={[styles.statusGlow, { backgroundColor: colors.primary }, animatedHeaderGlow]} />
+              <View style={[styles.statusDot, { backgroundColor: isThinking ? colors.primary : "#10b981" }]} />
+              <Text style={[styles.statusText, { color: colors.mutedForeground }]}>
+                {isThinking ? "A ANALISAR..." : "SAVVY GPT"}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -219,21 +240,6 @@ export default function AIScreen() {
         />
 
         <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 10 }]}>
-          {messages.length < 3 && (
-            <View style={styles.suggestionsScroll}>
-              {suggestions.map((s, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={[styles.suggestionChip, { backgroundColor: colors.card, borderColor: colors.border }]}
-                  onPress={() => sendMessage(s)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.suggestionText, { color: colors.primary }]}>{s}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
           <View style={[styles.inputBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <TextInput
               style={[styles.textInput, { color: colors.foreground }]}
@@ -242,14 +248,14 @@ export default function AIScreen() {
               placeholder={t.aiPlaceholder}
               placeholderTextColor={colors.mutedForeground}
               multiline
-              maxLength={500}
+              maxLength={1000}
             />
             <TouchableOpacity
               style={[styles.sendButton, { backgroundColor: input.trim() ? colors.primary : colors.border }]}
               onPress={() => sendMessage(input)}
               disabled={!input.trim() || isThinking}
             >
-              <Feather name="zap" size={18} color="#fff" />
+              <Feather name="arrow-up" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -267,12 +273,12 @@ function TypewriterText({ content, colors, onComplete }: { content: string, colo
       if (index.current < content.length) {
         setDisplayed((prev) => prev + content[index.current]);
         index.current += 1;
-        if (index.current % 5 === 0) onComplete();
+        if (index.current % 10 === 0) onComplete();
       } else {
         clearInterval(timer);
         onComplete();
       }
-    }, 10);
+    }, 8);
     return () => clearInterval(timer);
   }, [content]);
 
@@ -329,6 +335,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerLogo: { width: 100, height: 30 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
+  actionBtn: { padding: 4 },
   statusContainer: { flexDirection: "row", alignItems: "center", gap: 8 },
   statusGlow: { 
     position: "absolute", 
@@ -362,9 +370,6 @@ const styles = StyleSheet.create({
   typingContainer: { flexDirection: "row", gap: 6 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   bottomSection: { position: "absolute", bottom: 0, width: "100%", paddingHorizontal: 16 },
-  suggestionsScroll: { flexDirection: "row", gap: 10, marginBottom: 15 },
-  suggestionChip: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1 },
-  suggestionText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   inputBar: {
     flexDirection: "row",
     alignItems: "center",
