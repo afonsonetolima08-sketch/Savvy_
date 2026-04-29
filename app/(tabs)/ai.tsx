@@ -50,7 +50,6 @@ const SYSTEM_PROMPT = `És o Savvy AI, um assistente financeiro de elite, proati
 O teu tom é profissional, encorajador e direto ao ponto. 
 Deves usar os dados do utilizador para dar conselhos específicos. 
 Sempre que possível, sugere ações concretas para poupar ou investir. 
-Nunca dás conselhos genéricos se tiveres dados para analisar.
 Utilizador atual: {name}. Balanço: {balance}. Ganhos: {income}. Gastos: {expenses}. Património: {patrimony}. Objetivo: {objective}.`;
 
 export default function AIScreen() {
@@ -66,6 +65,16 @@ export default function AIScreen() {
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+
+  // Sync welcome message if language changes
+  useEffect(() => {
+    setMessages(prev => {
+       if (prev.length === 1 && prev[0].id === "welcome") {
+         return [{ id: "welcome", role: "assistant", content: t.aiWelcome }];
+       }
+       return prev;
+    });
+  }, [t.aiWelcome]);
 
   // Status Animation
   const headerGlow = useSharedValue(0);
@@ -99,14 +108,12 @@ export default function AIScreen() {
     }, 100);
   }, []);
 
-  // --- CHAT GPT BRAIN (NOW WITH REAL API SUPPORT) ---
   const callAIAgent = async (userMessage: string, history: Message[]) => {
     const text = userMessage.toLowerCase();
     const firstName = profile.name?.split(" ")[0] || "";
 
-    // 1. Check for real API Key (OpenAI compatible)
     const API_KEY = process.env.EXPO_PUBLIC_AI_API_KEY;
-    if (API_KEY) {
+    if (API_KEY && API_KEY !== "REPLACE_WITH_YOUR_OPENAI_KEY") {
       try {
         const fullSystemPrompt = SYSTEM_PROMPT
           .replace("{name}", financialContext.name)
@@ -139,11 +146,10 @@ export default function AIScreen() {
         }
       } catch (error) {
         console.error("AI API Error:", error);
-        // Fallback to mock if API fails
       }
     }
 
-    // 2. High-Fidelity Mock Fallback (Smart Engine)
+    // Mock Fallback
     const isFollowUp = history.length > 2;
     const lastMsg = history[history.length - 1]?.content.toLowerCase() || "";
 
@@ -295,10 +301,19 @@ function TypewriterText({ content, colors, onComplete }: { content: string, colo
   const [displayed, setDisplayed] = useState("");
   const index = useRef(0);
 
+  // RESET logic when content changes
   useEffect(() => {
+    setDisplayed("");
+    index.current = 0;
+    
+    if (!content) return;
+
     const timer = setInterval(() => {
       if (index.current < content.length) {
-        setDisplayed((prev) => prev + content[index.current]);
+        const nextChar = content[index.current];
+        if (nextChar !== undefined) {
+          setDisplayed((prev) => prev + nextChar);
+        }
         index.current += 1;
         if (index.current % 10 === 0) onComplete();
       } else {
@@ -310,9 +325,10 @@ function TypewriterText({ content, colors, onComplete }: { content: string, colo
   }, [content]);
 
   const renderFormattedText = (text: string) => {
+    if (!text) return null;
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, i) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
+      if (part && part.startsWith("**") && part.endsWith("**")) {
         return (
           <Text key={i} style={[styles.boldText, { color: colors.foreground }]}>
             {part.slice(2, -2)}
@@ -323,7 +339,11 @@ function TypewriterText({ content, colors, onComplete }: { content: string, colo
     });
   };
 
-  return <Text style={[styles.bubbleTextAssistant, { color: colors.mutedForeground }]}>{renderFormattedText(displayed)}</Text>;
+  return (
+    <Text style={[styles.bubbleTextAssistant, { color: colors.mutedForeground }]}>
+      {renderFormattedText(displayed)}
+    </Text>
+  );
 }
 
 function TypingIndicator({ color }: { color: string }) {
