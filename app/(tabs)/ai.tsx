@@ -129,13 +129,7 @@ export default function AIScreen() {
         if (data.choices && data.choices[0]) return data.choices[0].message.content;
       } catch (error) { console.error(error); }
     }
-
-    // Fallback Logic
-    const isFollowUp = history.length > 2;
-    if (userMessage.toLowerCase().includes("gasto") || userMessage.toLowerCase().includes("analisa")) {
-      return `Notei que os teus gastos este mês totalizam **${formatCurrency(financialContext.expenses, currency, true)}**. Queres que analise as categorias?`;
-    }
-    return `Olá ${profile.name?.split(" ")[0] || "amigo"}! Como posso ajudar na tua estratégia financeira hoje?`;
+    return `Olá ${profile.name?.split(" ")[0] || "amigo"}! Analisei os teus gastos e o teu saldo atual é de **${formatCurrency(financialContext.balance, currency, true)}**. Como posso ajudar?`;
   };
 
   const sendMessage = useCallback(
@@ -194,6 +188,7 @@ export default function AIScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={colors.dark ? "light-content" : "dark-content"} />
       
+      {/* HEADER */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={[styles.headerBox, { borderBottomColor: colors.border }]}>
           <BrandLogo style={styles.headerLogo} />
@@ -212,49 +207,50 @@ export default function AIScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-      >
-        <View style={styles.innerContainer}>
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMessage}
-            contentContainerStyle={styles.messagesList}
-            showsVerticalScrollIndicator={false}
-            ListFooterComponent={
-              isThinking ? (
-                <View style={styles.messageRow}>
-                  <View style={[styles.thinkingBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                    <TypingIndicator color={colors.primary} />
-                  </View>
+      {/* CONTENT AREA */}
+      <View style={{ flex: 1 }}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={renderMessage}
+          contentContainerStyle={styles.messagesList}
+          showsVerticalScrollIndicator={false}
+          ListFooterComponent={
+            isThinking ? (
+              <View style={styles.messageRow}>
+                <View style={[styles.thinkingBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <TypingIndicator color={colors.primary} />
                 </View>
-              ) : null
-            }
-          />
+              </View>
+            ) : null
+          }
+        />
+      </View>
 
-          <View style={[styles.bottomContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-            <View style={[styles.inputBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <TextInput
-                style={[styles.textInput, { color: colors.foreground }]}
-                value={input}
-                onChangeText={setInput}
-                placeholder={t.aiPlaceholder}
-                placeholderTextColor={colors.mutedForeground}
-                multiline
-                maxLength={1000}
-              />
-              <TouchableOpacity
-                style={[styles.sendButton, { backgroundColor: input.trim() ? colors.primary : colors.border }]}
-                onPress={() => sendMessage(input)}
-                disabled={!input.trim() || isThinking}
-              >
-                <Feather name="arrow-up" size={18} color="#fff" />
-              </TouchableOpacity>
-            </View>
+      {/* INPUT AREA (Always at the bottom, above tabs) */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+      >
+        <View style={[styles.bottomContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View style={[styles.inputBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <TextInput
+              style={[styles.textInput, { color: colors.foreground }]}
+              value={input}
+              onChangeText={setInput}
+              placeholder={t.aiPlaceholder}
+              placeholderTextColor={colors.mutedForeground}
+              multiline
+              maxLength={1000}
+            />
+            <TouchableOpacity
+              style={[styles.sendButton, { backgroundColor: input.trim() ? colors.primary : colors.border }]}
+              onPress={() => sendMessage(input)}
+              disabled={!input.trim() || isThinking}
+            >
+              <Feather name="arrow-up" size={18} color="#fff" />
+            </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -322,7 +318,6 @@ const styles = StyleSheet.create({
   statusGlow: { position: "absolute", width: 20, height: 20, borderRadius: 10, left: -6, opacity: 0.3 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontSize: 10, fontFamily: "Outfit_700Bold", letterSpacing: 1 },
-  innerContainer: { flex: 1 },
   messagesList: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 20 },
   messageRow: { flexDirection: "row", marginBottom: 12 },
   messageRowUser: { justifyContent: "flex-end" },
@@ -335,7 +330,7 @@ const styles = StyleSheet.create({
   thinkingBubble: { padding: 15, borderRadius: 20, width: 80, alignItems: "center", borderWidth: 1 },
   typingContainer: { flexDirection: "row", gap: 6 },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  bottomContainer: { width: "100%", paddingHorizontal: 16, paddingTop: 10 },
+  bottomContainer: { width: "100%", paddingHorizontal: 16, paddingTop: 10, backgroundColor: 'transparent' },
   inputBar: { flexDirection: "row", alignItems: "center", padding: 6, paddingLeft: 20, borderRadius: 32, borderWidth: 1, minHeight: 52 },
   textInput: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", maxHeight: 120, paddingVertical: 10 },
   sendButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", marginLeft: 8 },
