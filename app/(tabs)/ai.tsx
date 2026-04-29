@@ -50,7 +50,8 @@ const SYSTEM_PROMPT = `És o Savvy AI, um assistente financeiro de elite, proati
 O teu tom é profissional, encorajador e direto ao ponto. 
 Deves usar os dados do utilizador para dar conselhos específicos. 
 Sempre que possível, sugere ações concretas para poupar ou investir. 
-Nunca dás conselhos genéricos se tiveres dados para analisar.`;
+Nunca dás conselhos genéricos se tiveres dados para analisar.
+Utilizador atual: {name}. Balanço: {balance}. Ganhos: {income}. Gastos: {expenses}. Património: {patrimony}. Objetivo: {objective}.`;
 
 export default function AIScreen() {
   const colors = useColors();
@@ -98,20 +99,51 @@ export default function AIScreen() {
     }, 100);
   }, []);
 
-  // --- CHAT GPT STYLE BRAIN ---
+  // --- CHAT GPT BRAIN (NOW WITH REAL API SUPPORT) ---
   const callAIAgent = async (userMessage: string, history: Message[]) => {
     const text = userMessage.toLowerCase();
     const firstName = profile.name?.split(" ")[0] || "";
 
-    // 1. Check for real API Key (Future proofing)
+    // 1. Check for real API Key (OpenAI compatible)
     const API_KEY = process.env.EXPO_PUBLIC_AI_API_KEY;
     if (API_KEY) {
-      // Here we would implement the real fetch to OpenAI/Gemini
-      // For now, we continue with our high-fidelity mock
+      try {
+        const fullSystemPrompt = SYSTEM_PROMPT
+          .replace("{name}", financialContext.name)
+          .replace("{balance}", financialContext.balance.toString())
+          .replace("{income}", financialContext.income.toString())
+          .replace("{expenses}", financialContext.expenses.toString())
+          .replace("{patrimony}", financialContext.patrimony.toString())
+          .replace("{objective}", financialContext.objective);
+
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo", // Or gpt-4o
+            messages: [
+              { role: "system", content: fullSystemPrompt },
+              ...history.slice(-10).map(m => ({ role: m.role, content: m.content })),
+              { role: "user", content: userMessage }
+            ],
+            temperature: 0.7,
+          }),
+        });
+
+        const data = await response.json();
+        if (data.choices && data.choices[0]) {
+          return data.choices[0].message.content;
+        }
+      } catch (error) {
+        console.error("AI API Error:", error);
+        // Fallback to mock if API fails
+      }
     }
 
-    // 2. High-Fidelity Mock with Conversational Context
-    // We check the history to see if the user is following up
+    // 2. High-Fidelity Mock Fallback (Smart Engine)
     const isFollowUp = history.length > 2;
     const lastMsg = history[history.length - 1]?.content.toLowerCase() || "";
 
@@ -123,24 +155,19 @@ export default function AIScreen() {
       if (topCategoryEntry) {
         const [cat, amount] = topCategoryEntry;
         const catName = t[`cat${cat.charAt(0).toUpperCase() + cat.slice(1)}` as keyof typeof t] || cat;
-        return `Analisando os teus movimentos mais recentes, notei que **${catName}** é a tua maior despesa, com um total de **${formatCurrency(amount, currency, true)}**. \n\nIsto representa **${((amount / financialContext.income) * 100).toFixed(0)}%** do teu rendimento. Queres que explore formas de otimizar esta categoria específica?`;
+        return `Notei que gastaste **${formatCurrency(amount, currency, true)}** em **${catName}**. Isto é **${((amount / financialContext.income) * 100).toFixed(0)}%** do teu rendimento. Queres que analise isto em detalhe?`;
       }
     }
 
     if (text.includes("poupar") || text.includes("save") || (isFollowUp && lastMsg.includes("gasto"))) {
-      return `Com base no teu saldo atual de **${formatCurrency(financialContext.balance, currency, true)}**, sugiro que apliques a regra **50/30/20**. \n\nDeverias estar a direcionar **${formatCurrency(financialContext.income * 0.2, currency, true)}** diretamente para poupança. Queres definir um alerta automático para quando ultrapassares este limite?`;
+      return `Com um saldo de **${formatCurrency(financialContext.balance, currency, true)}**, a tua meta deve ser poupar **${formatCurrency(financialContext.income * 0.2, currency, true)}** este mês. Estás perto disso?`;
     }
 
-    if (text.includes("investir") || text.includes("investimento")) {
-      return `Como o teu objetivo é **${t[`obj${financialContext.objective.charAt(0).toUpperCase() + financialContext.objective.slice(1)}` as keyof typeof t] || financialContext.objective}**, o investimento estratégico é a tua melhor ferramenta. \n\nCom o teu património atual de **${formatCurrency(financialContext.patrimony, currency, true)}**, tens margem para alocar 10-15% em ativos de baixo risco. Gostarias de ver uma simulação de crescimento?`;
-    }
-
-    // Contextual response for general chat
     if (isFollowUp) {
-      return `Entendo perfeitamente o teu ponto sobre isso. Considerando a tua estratégia de **${t[`obj${financialContext.objective.charAt(0).toUpperCase() + financialContext.objective.slice(1)}` as keyof typeof t] || financialContext.objective}**, o mais importante agora é manter a consistência. Há mais algum detalhe sobre os teus **${formatCurrency(financialContext.expenses, currency, true)}** de despesa este mês que queiras discutir?`;
+      return `Como tens o objetivo de **${t[`obj${financialContext.objective.charAt(0).toUpperCase() + financialContext.objective.slice(1)}` as keyof typeof t] || financialContext.objective}**, manter o foco é essencial. Como te sentes em relação aos teus progressos?`;
     }
 
-    return `Olá ${firstName}! Analisei o teu perfil e estou pronto para otimizar as tuas finanças. Podes perguntar-me sobre os teus gastos, estratégias de poupança ou como atingir o teu objetivo de **${t[`obj${financialContext.objective.charAt(0).toUpperCase() + financialContext.objective.slice(1)}` as keyof typeof t] || financialContext.objective}**.`;
+    return `Olá ${firstName}! Analisei os teus dados e o teu saldo atual é de **${formatCurrency(financialContext.balance, currency, true)}**. Em que posso ajudar na tua estratégia de hoje?`;
   };
 
   const sendMessage = useCallback(
@@ -152,12 +179,12 @@ export default function AIScreen() {
       setInput("");
 
       const userMsg: Message = { id: makeId(), role: "user", content: trimmed };
-      const newMessages = [...messages, userMsg];
-      setMessages(newMessages);
+      const currentHistory = [...messages];
+      setMessages((prev) => [...prev, userMsg]);
       setIsThinking(true);
 
       setTimeout(async () => {
-        const reply = await callAIAgent(trimmed, newMessages);
+        const reply = await callAIAgent(trimmed, currentHistory);
         const assistantMsg: Message = { id: makeId(), role: "assistant", content: reply, isTyping: true };
         setMessages((prev) => [...prev, assistantMsg]);
         setIsThinking(false);
