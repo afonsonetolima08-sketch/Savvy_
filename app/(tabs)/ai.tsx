@@ -124,7 +124,6 @@ export default function AIScreen() {
             temperature: 0.7,
           }),
         });
-
         const data = await response.json();
         if (data.choices && data.choices[0]) return data.choices[0].message.content;
       } catch (error) { console.error(error); }
@@ -136,15 +135,12 @@ export default function AIScreen() {
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || isThinking) return;
-
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setInput("");
-
       const userMsg: Message = { id: makeId(), role: "user", content: trimmed };
       const currentHistory = [...messages];
       setMessages((prev) => [...prev, userMsg]);
       setIsThinking(true);
-
       setTimeout(async () => {
         const reply = await callAIAgent(trimmed, currentHistory);
         const assistantMsg: Message = { id: makeId(), role: "assistant", content: reply, isTyping: true };
@@ -164,21 +160,9 @@ export default function AIScreen() {
   const renderMessage = ({ item, index }: { item: Message, index: number }) => {
     const isUser = item.role === "user";
     return (
-      <Animated.View 
-        entering={FadeInDown.springify().delay(index * 50)}
-        style={[styles.messageRow, isUser && styles.messageRowUser]}
-      >
-        <View 
-          style={[
-            styles.bubble,
-            isUser ? [styles.bubbleUser, { backgroundColor: colors.primary }] : [styles.bubbleAssistant, { backgroundColor: colors.card, borderColor: colors.border }]
-          ]}
-        >
-          {isUser ? (
-            <Text style={styles.bubbleTextUser}>{item.content}</Text>
-          ) : (
-            <TypewriterText content={item.content} colors={colors} onComplete={scrollToBottom} />
-          )}
+      <Animated.View entering={FadeInDown.springify().delay(index * 50)} style={[styles.messageRow, isUser && styles.messageRowUser]}>
+        <View style={[styles.bubble, isUser ? [styles.bubbleUser, { backgroundColor: colors.primary }] : [styles.bubbleAssistant, { backgroundColor: colors.card, borderColor: colors.border }]]}>
+          {isUser ? <Text style={styles.bubbleTextUser}>{item.content}</Text> : <TypewriterText content={item.content} colors={colors} onComplete={scrollToBottom} />}
         </View>
       </Animated.View>
     );
@@ -199,9 +183,7 @@ export default function AIScreen() {
             <View style={styles.statusContainer}>
               <Animated.View style={[styles.statusGlow, { backgroundColor: colors.primary }, animatedHeaderGlow]} />
               <View style={[styles.statusDot, { backgroundColor: isThinking ? colors.primary : "#10b981" }]} />
-              <Text style={[styles.statusText, { color: colors.mutedForeground }]}>
-                {isThinking ? "A ANALISAR..." : "SAVVY GPT"}
-              </Text>
+              <Text style={[styles.statusText, { color: colors.mutedForeground }]}>{isThinking ? "A ANALISAR..." : "SAVVY GPT"}</Text>
             </View>
           </View>
         </View>
@@ -216,24 +198,22 @@ export default function AIScreen() {
           renderItem={renderMessage}
           contentContainerStyle={styles.messagesList}
           showsVerticalScrollIndicator={false}
-          ListFooterComponent={
-            isThinking ? (
-              <View style={styles.messageRow}>
-                <View style={[styles.thinkingBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <TypingIndicator color={colors.primary} />
-                </View>
+          ListFooterComponent={isThinking ? (
+            <View style={styles.messageRow}>
+              <View style={[styles.thinkingBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <TypingIndicator color={colors.primary} />
               </View>
-            ) : null
-          }
+            </View>
+          ) : null}
         />
       </View>
 
-      {/* INPUT AREA (Always at the bottom, above tabs) */}
-      <KeyboardAvoidingView
+      {/* INPUT AREA (Fixed height and accounted for tab bar) */}
+      <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
-        <View style={[styles.bottomContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View style={[styles.bottomContainer, { paddingBottom: 20 }]}>
           <View style={[styles.inputBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <TextInput
               style={[styles.textInput, { color: colors.foreground }]}
@@ -275,14 +255,11 @@ function TypewriterText({ content, colors, onComplete }: { content: string, colo
     }, 8);
     return () => clearInterval(timer);
   }, [content]);
-
   const renderFormattedText = (text: string) => {
     if (!text) return null;
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, i) => {
-      if (part && part.startsWith("**") && part.endsWith("**")) {
-        return <Text key={i} style={[styles.boldText, { color: colors.foreground }]}>{part.slice(2, -2)}</Text>;
-      }
+      if (part && part.startsWith("**") && part.endsWith("**")) return <Text key={i} style={[styles.boldText, { color: colors.foreground }]}>{part.slice(2, -2)}</Text>;
       return part;
     });
   };
