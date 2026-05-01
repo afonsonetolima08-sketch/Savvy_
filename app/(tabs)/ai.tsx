@@ -135,37 +135,23 @@ export default function AIScreen() {
 
     // 2. High-Fidelity Smart Fallback (Mock)
     const isFollowUp = history.length > 2;
-    const lastMsg = history[history.length - 1]?.content.toLowerCase() || "";
-
-    // ANALYZE SPENDING
     if (text.includes("gast") || text.includes("analisa") || text.includes("despesa")) {
       const monthTxs = getMonthTransactions(transactions).filter(tx => tx.type === "expense");
       const breakdown = getCategoryBreakdown(monthTxs);
       const topCategoryEntry = Object.entries(breakdown).sort((a, b) => b[1] - a[1])[0];
-
       if (topCategoryEntry) {
         const [cat, amount] = topCategoryEntry;
         const catName = t[`cat${cat.charAt(0).toUpperCase() + cat.slice(1)}` as keyof typeof t] || cat;
         return `Analisando os teus movimentos, vi que gastaste **${formatCurrency(amount, currency, true)}** em **${catName}** recentemente. \n\nIsto representa uma parte significativa do teu orçamento. Queres que eu sugira formas de reduzir gastos nesta categoria?`;
       }
-      
-      if (financialContext.expenses > 0) {
-        return `Este mês já gastaste um total de **${formatCurrency(financialContext.expenses, currency, true)}**. Queres ver o detalhe por categorias?`;
-      }
-      
-      return `Ainda não detetei despesas registadas no teu perfil para este período. Podes adicionar transações no separador "Transactions" para eu poder ajudar-te!`;
+      return financialContext.expenses > 0 ? `Este mês já gastaste um total de **${formatCurrency(financialContext.expenses, currency, true)}**. Queres ver o detalhe por categorias?` : `Ainda não detetei despesas registadas no teu perfil para este período. Podes adicionar transações no separador "Transactions" para eu poder ajudar-te!`;
     }
-
-    // SAVINGS & INVESTMENTS
     if (text.includes("poup") || text.includes("invest") || text.includes("dinheiro")) {
       return `Com um saldo de **${formatCurrency(financialContext.balance, currency, true)}**, estás numa posição estratégica para o teu objetivo de **${localizedObjective}**. Recomendo tentares poupar pelo menos 20% do teu rendimento. Queres que calcule esse valor?`;
     }
-
-    // CONVERSATIONAL FALLBACK
     if (isFollowUp) {
       return `Entendo. Relativamente ao que disseste antes, acho que o mais importante para atingires o teu objetivo de **${localizedObjective}** é manter a consistência. Gostarias que eu fizesse alguma simulação específica?`;
     }
-
     return `Olá ${profile.name?.split(" ")[0] || "Afonso"}! Detetei que o teu saldo atual é de **${formatCurrency(financialContext.balance, currency, true)}**. Em que posso ajudar na tua estratégia financeira hoje?`;
   };
 
@@ -246,7 +232,7 @@ export default function AIScreen() {
         />
       </View>
 
-      {/* INPUT AREA */}
+      {/* INPUT AREA (Centralized further up) */}
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
@@ -346,9 +332,9 @@ const styles = StyleSheet.create({
   thinkingBubble: { padding: 15, borderRadius: 20, width: 80, alignItems: "center", borderWidth: 1 },
   typingContainer: { flexDirection: "row", gap: 6 },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  bottomArea: { marginBottom: 65 }, // Optimized for web tab bar
-  bottomContainer: { width: "100%", paddingHorizontal: 16, paddingTop: 10 },
-  inputBar: { flexDirection: "row", alignItems: "center", padding: 6, paddingLeft: 20, borderRadius: 32, borderWidth: 1, minHeight: 52 },
-  textInput: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", maxHeight: 120, paddingVertical: 10 },
-  sendButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", marginLeft: 8 },
+  bottomArea: { marginBottom: 95 }, // Centralized more upwards (from 65 to 95)
+  bottomContainer: { width: "100%", paddingHorizontal: 24, paddingTop: 12, backgroundColor: 'transparent' },
+  inputBar: { flexDirection: "row", alignItems: "center", padding: 6, paddingLeft: 22, borderRadius: 32, borderWidth: 1.5, minHeight: 56, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
+  textInput: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", maxHeight: 120, paddingVertical: 12 },
+  sendButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", marginLeft: 10 },
 });
