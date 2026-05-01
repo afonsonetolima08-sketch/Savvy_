@@ -3,399 +3,286 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
   Dimensions,
+  Platform,
 } from "react-native";
 import Animated, { 
   FadeInDown, 
-  FadeInRight, 
-  FadeOutLeft, 
+  FadeInUp, 
+  FadeOut,
   Layout, 
   useAnimatedStyle, 
   useSharedValue, 
   withSpring,
-  withTiming
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColors } from "@/hooks/useColors";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { useApp } from "@/context/AppContext";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-type StepType = "options" | "number" | "boolean" | "text";
-
-type Step = {
-  id: string;
-  question: string;
-  subtitle?: string;
-  type: StepType;
-  field: string;
-  icon: keyof typeof Feather.glyphMap;
-  options?: { label: string; value: string }[];
-  placeholder?: string;
+const COLORS = {
+  forest: "#01241c",
+  deepEmerald: "#064e3b",
+  neonEmerald: "#10b981",
+  brightMint: "#34d399",
+  white: "#ffffff",
+  textMuted: "#a7f3d0",
 };
 
-const STEPS: Step[] = [
-  {
-    id: "name",
-    question: "Olá! Como te chamas?",
-    subtitle: "Vamos personalizar a tua experiência financeira.",
-    type: "text",
-    field: "name",
-    icon: "user",
-    placeholder: "Escreve o teu nome...",
-  },
-  {
-    id: "objective",
-    question: "Qual o teu objetivo principal?",
-    subtitle: "Adapta as tuas dicas e recomendações.",
-    type: "options",
-    field: "mainObjective",
-    icon: "target",
-    options: [
-      { label: "Poupar dinheiro", value: "save" },
-      { label: "Reduzir dívidas", value: "reduce_debt" },
-      { label: "Investir", value: "invest" },
-      { label: "Controlar gastos", value: "control" },
-      { label: "Independência financeira", value: "freedom" },
-    ],
-  },
-  {
-    id: "income",
-    question: "Rendimento mensal?",
-    subtitle: "Ajuda-nos a calibrar as tuas metas.",
-    type: "number",
-    field: "monthlyIncome",
-    icon: "trending-up",
-  },
-  {
-    id: "patrimony",
-    question: "Património atual?",
-    subtitle: "Soma de todas as tuas poupanças e ativos.",
-    type: "number",
-    field: "initialPatrimony",
-    icon: "briefcase",
-  },
-  {
-    id: "debts",
-    question: "Tens dívidas totais?",
-    subtitle: "Cartões, empréstimos, etc. (0 se não tiveres)",
-    type: "number",
-    field: "debts",
-    icon: "alert-circle",
-  },
-  {
-    id: "dependents",
-    question: "Tens dependentes?",
-    subtitle: "Pessoas que dependem de ti financeiramente.",
-    type: "boolean",
-    field: "hasDependents",
-    icon: "users",
-  },
-  {
-    id: "horizon",
-    question: "Horizonte temporal?",
-    subtitle: "Por quanto tempo pretendes investir?",
-    type: "options",
-    field: "investmentHorizon",
-    icon: "clock",
-    options: [
-      { label: "Curto prazo (< 1 ano)", value: "short" },
-      { label: "Médio prazo (1-5 anos)", value: "medium" },
-      { label: "Longo prazo (5+ anos)", value: "long" },
-    ],
-  },
-];
-
-export default function OnboardingScreen() {
-  const colors = useColors();
+export default function FeatureOnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { updateProfile } = useApp();
-  
   const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
-  const [textValue, setTextValue] = useState("");
-  const [numValue, setNumValue] = useState("");
-  
-  const progress = useSharedValue((1 / STEPS.length) * 100);
-  const step = STEPS[currentStep];
-  const isLast = currentStep === STEPS.length - 1;
+  const progress = useSharedValue(25);
+
+  const steps = [
+    {
+      title: "O teu resumo financeiro",
+      desc: "Acompanha o teu saldo do mês, ganhos, gastos e o teu Património Atual num só lugar.",
+      type: "dashboard"
+    },
+    {
+      title: "Percebe para onde vai o teu dinheiro",
+      desc: "Analisa os teus gastos por mês ou por categoria e visualiza o histórico dos últimos 6 meses.",
+      type: "analysis"
+    },
+    {
+      title: "Define e alcança os teus objetivos",
+      desc: "Cria objetivos financeiros e aloca o teu Património para os atingir.",
+      type: "goals"
+    },
+    {
+      title: "O teu assistente financeiro pessoal",
+      desc: "Faz perguntas ao Savvy GPT sobre poupança, investimento e estratégias financeiras.",
+      type: "ai"
+    }
+  ];
 
   useEffect(() => {
-    progress.value = withSpring(((currentStep + 1) / STEPS.length) * 100);
+    progress.value = withSpring(((currentStep + 1) / steps.length) * 100);
   }, [currentStep]);
 
   const progressStyle = useAnimatedStyle(() => ({
     width: `${progress.value}%`,
   }));
 
-  const handleOption = (value: string | boolean) => {
-    Haptics.selectionAsync();
-    const updated = { ...answers, [step.field]: value };
-    setAnswers(updated);
-    if (step.type !== "number" && step.type !== "text") {
-      setTimeout(() => goNext(updated), 300);
-    }
-  };
-
-  const goNext = (updatedAnswers?: Record<string, any>) => {
-    const ans = updatedAnswers ?? { ...answers };
-
-    if (step.type === "number") {
-      const val = parseFloat(numValue.replace(",", ".")) || 0;
-      ans[step.field] = val;
-      setNumValue("");
-    } else if (step.type === "text") {
-      ans[step.field] = textValue.trim();
-      setTextValue("");
-    }
-
-    setAnswers(ans);
-
-    if (currentStep < STEPS.length - 1) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setCurrentStep((s) => s + 1);
+  const handleNext = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(s => s + 1);
     } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      updateProfile({
-        ...ans,
-        currentPatrimony: ans.initialPatrimony ?? 0,
-        onboardingCompleted: true,
-        currency: "EUR",
-        language: "pt",
-        financialGoal: ans.mainObjective ?? "",
-      });
-      router.replace("/(tabs)");
+      // Final step: Finish onboarding
+      try {
+        await AsyncStorage.setItem("savvy_returning_user", "true");
+        updateProfile({ onboardingCompleted: true });
+        router.replace("/(tabs)");
+      } catch (e) {
+        router.replace("/(tabs)");
+      }
     }
   };
 
-  const goBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep((s) => s - 1);
-      setNumValue("");
-      setTextValue("");
+  const renderMockup = (type: string) => {
+    switch (type) {
+      case "dashboard":
+        return (
+          <View style={styles.mockContainer}>
+            <View style={[styles.mockCard, { backgroundColor: "#ef4444" }]}>
+              <Text style={styles.mockCardLabel}>Saldo do Mês</Text>
+              <Text style={styles.mockCardValue}>2.450,00 €</Text>
+            </View>
+            <View style={styles.mockRow}>
+              <View style={styles.mockHalfCard}>
+                 <Text style={styles.mockSmallLabel}>Ganhos</Text>
+                 <Text style={styles.mockSmallValue}>+3.200 €</Text>
+              </View>
+              <View style={styles.mockHalfCard}>
+                 <Text style={styles.mockSmallLabel}>Gastos</Text>
+                 <Text style={styles.mockSmallValue}>-750 €</Text>
+              </View>
+            </View>
+            <View style={styles.mockListCard}>
+               <Text style={styles.mockSmallLabel}>Património Atual</Text>
+               <Text style={styles.mockLargeValue}>12.540,80 €</Text>
+               <View style={styles.mockProgressBar}><View style={[styles.mockProgressFill, { width: "65%" }]} /></View>
+               <Text style={styles.mockTinyText}>65% do orçamento usado</Text>
+            </View>
+          </View>
+        );
+      case "analysis":
+        return (
+          <View style={styles.mockContainer}>
+             <View style={styles.mockChartBox}>
+                <View style={styles.mockBars}>
+                   {[40, 70, 45, 90, 60, 80].map((h, i) => (
+                     <View key={i} style={[styles.mockBar, { height: h }]} />
+                   ))}
+                </View>
+                <View style={styles.mockBarLabels} />
+             </View>
+             <View style={styles.mockCategoryRow}>
+                <View style={styles.mockIconCircle}><Feather name="shopping-cart" size={12} color="#fff" /></View>
+                <View style={{ flex: 1 }}><View style={styles.mockLineShort} /><View style={styles.mockLineLong} /></View>
+                <Text style={styles.mockPrice}>-120€</Text>
+             </View>
+             <View style={styles.mockCategoryRow}>
+                <View style={[styles.mockIconCircle, { backgroundColor: "#3b82f6" }]}><Feather name="home" size={12} color="#fff" /></View>
+                <View style={{ flex: 1 }}><View style={styles.mockLineShort} /><View style={styles.mockLineLong} /></View>
+                <Text style={styles.mockPrice}>-600€</Text>
+             </View>
+          </View>
+        );
+      case "goals":
+        return (
+          <View style={styles.mockContainer}>
+            <View style={styles.mockGoalCard}>
+               <Text style={styles.mockGoalTitle}>Viagem Japão 🇯🇵</Text>
+               <View style={styles.mockGoalAmounts}>
+                  <Text style={styles.mockGoalCurrent}>1.200 €</Text>
+                  <Text style={styles.mockGoalTarget}>de 3.000 €</Text>
+               </View>
+               <View style={styles.mockGoalBar}><View style={[styles.mockGoalFill, { width: "40%" }]} /></View>
+            </View>
+            <View style={styles.mockGoalCard}>
+               <Text style={styles.mockGoalTitle}>Reserva Emergência</Text>
+               <View style={styles.mockGoalAmounts}>
+                  <Text style={styles.mockGoalCurrent}>5.000 €</Text>
+                  <Text style={styles.mockGoalTarget}>de 5.000 €</Text>
+               </View>
+               <View style={[styles.mockGoalBar, { backgroundColor: COLORS.neonEmerald + "20" }]}><View style={[styles.mockGoalFill, { width: "100%", backgroundColor: COLORS.neonEmerald }]} /></View>
+            </View>
+          </View>
+        );
+      case "ai":
+        return (
+          <View style={styles.mockContainer}>
+             <View style={styles.mockAiBubble}>
+                <Text style={styles.mockAiText}>"Com base nos teus gastos de lazer, podes poupar **80€** este mês se reduzires as subscrições não utilizadas."</Text>
+             </View>
+             <View style={styles.mockAiInput}>
+                <Text style={styles.mockAiPlaceholder}>Escreve a tua pergunta...</Text>
+                <Feather name="send" size={16} color={COLORS.neonEmerald} />
+             </View>
+          </View>
+        );
+      default: return null;
     }
   };
 
-  const canContinue = (() => {
-    if (step.type === "number") return numValue.length > 0;
-    if (step.type === "text") return textValue.trim().length > 0;
-    return answers[step.field] !== undefined;
-  })();
-
-  const COLORS = {
-    forest: "#01241c",
-    deepEmerald: "#064e3b",
-    neonEmerald: "#10b981",
-    brightMint: "#34d399",
-  };
+  const stepData = steps[currentStep];
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <LinearGradient colors={[COLORS.forest, COLORS.deepEmerald]} style={StyleSheet.absoluteFill} />
       
-      {/* HEADER */}
+      {/* HEADER PROGRESS */}
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <TouchableOpacity onPress={goBack} disabled={currentStep === 0} style={[styles.backBtn, { opacity: currentStep === 0 ? 0 : 1 }]}>
-          <Feather name="arrow-left" size={24} color="#fff" />
-        </TouchableOpacity>
-        
-        <View style={styles.progressContainer}>
-           <View style={[styles.progressBar, { backgroundColor: "rgba(255,255,255,0.1)" }]}>
-              <Animated.View style={[styles.progressFill, { backgroundColor: COLORS.neonEmerald }, progressStyle]} />
-           </View>
-           <Text style={styles.stepText}>{currentStep + 1} de {STEPS.length}</Text>
-        </View>
-        
-        <View style={styles.backBtn} />
+         <View style={styles.progressBarContainer}>
+            <Animated.View style={[styles.progressFillMain, progressStyle]} />
+         </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
-        keyboardShouldPersistTaps="handled"
+      <Animated.ScrollView 
+        key={currentStep}
+        entering={FadeInDown.springify()} 
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View 
-          key={step.id}
-          entering={FadeInDown.springify()}
-          layout={Layout.springify()}
-          style={styles.content}
+        <View style={styles.mockupWrapper}>
+           {renderMockup(stepData.type)}
+        </View>
+
+        <View style={styles.textWrapper}>
+           <Animated.Text entering={FadeInUp.delay(200).springify()} style={styles.title}>{stepData.title}</Animated.Text>
+           <Animated.Text entering={FadeInUp.delay(300).springify()} style={styles.desc}>{stepData.desc}</Animated.Text>
+        </View>
+
+        <TouchableOpacity 
+          onPress={handleNext} 
+          style={styles.nextBtnContainer}
+          activeOpacity={0.9}
         >
-          {/* ICON & TITLE */}
-          <View style={styles.iconBox}>
-             <BlurView intensity={20} tint="light" style={styles.iconCircle}>
-                <Feather name={step.icon} size={32} color={COLORS.brightMint} />
-             </BlurView>
-          </View>
-
-          <Text style={styles.question}>{step.question}</Text>
-          {step.subtitle && <Text style={styles.subtitle}>{step.subtitle}</Text>}
-
-          {/* INPUTS AREA */}
-          <View style={styles.inputArea}>
-            {step.type === "text" && (
-              <Animated.View entering={FadeInRight.delay(200)}>
-                <TextInput
-                  style={styles.textInput}
-                  value={textValue}
-                  onChangeText={setTextValue}
-                  placeholder={step.placeholder}
-                  placeholderTextColor="rgba(255,255,255,0.3)"
-                  autoFocus
-                  selectionColor={COLORS.neonEmerald}
-                />
-              </Animated.View>
-            )}
-
-            {step.type === "number" && (
-              <Animated.View entering={FadeInRight.delay(200)} style={styles.numberInputBox}>
-                <Text style={styles.currencyPrefix}>€</Text>
-                <TextInput
-                  style={styles.numberInput}
-                  value={numValue}
-                  onChangeText={setNumValue}
-                  placeholder="0"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
-                  keyboardType="numeric"
-                  autoFocus
-                  selectionColor={COLORS.neonEmerald}
-                />
-              </Animated.View>
-            )}
-
-            {(step.type === "options" || step.type === "boolean") && (
-              <View style={styles.optionsGrid}>
-                {(step.options || [{ label: "Sim", value: true }, { label: "Não", value: false }]).map((opt, i) => {
-                  const selected = answers[step.field] === opt.value;
-                  return (
-                    <Animated.View key={String(opt.value)} entering={FadeInDown.delay(i * 100)}>
-                      <TouchableOpacity
-                        onPress={() => handleOption(opt.value)}
-                        activeOpacity={0.7}
-                        style={[
-                          styles.optionCard,
-                          { 
-                            backgroundColor: selected ? COLORS.neonEmerald : "rgba(255,255,255,0.05)",
-                            borderColor: selected ? COLORS.neonEmerald : "rgba(255,255,255,0.1)"
-                          }
-                        ]}
-                      >
-                        <Text style={[styles.optionLabel, { color: selected ? COLORS.forest : "#fff" }]}>
-                          {opt.label}
-                        </Text>
-                        <View style={[styles.optionCheck, { backgroundColor: selected ? COLORS.forest : "rgba(255,255,255,0.1)" }]}>
-                           {selected && <Feather name="check" size={14} color={COLORS.neonEmerald} />}
-                        </View>
-                      </TouchableOpacity>
-                    </Animated.View>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-
-          {/* CONTINUE BUTTON */}
-          {(step.type === "text" || step.type === "number") && (
-            <Animated.View entering={FadeInUp.delay(400)}>
-              <TouchableOpacity
-                onPress={() => goNext()}
-                disabled={!canContinue}
-                style={[styles.continueBtn, { opacity: canContinue ? 1 : 0.5 }]}
-              >
-                <LinearGradient
-                  colors={[COLORS.neonEmerald, COLORS.brightMint]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.btnGradient}
-                >
-                  <Text style={styles.btnText}>{isLast ? "Concluir" : "Próximo"}</Text>
-                  <Feather name={isLast ? "check" : "chevron-right"} size={20} color={COLORS.forest} />
-                </LinearGradient>
-              </TouchableOpacity>
-            </Animated.View>
-          )}
-        </Animated.View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <LinearGradient 
+            colors={[COLORS.neonEmerald, COLORS.brightMint]} 
+            start={{x: 0, y: 0}} end={{x: 1, y: 1}}
+            style={styles.nextBtn}
+          >
+            <Text style={styles.nextBtnText}>{currentStep === steps.length - 1 ? "Começar" : "Próximo"}</Text>
+            <Feather name={currentStep === steps.length - 1 ? "zap" : "chevron-right"} size={22} color={COLORS.forest} />
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    zIndex: 10,
-  },
-  backBtn: { width: 44, height: 44, justifyContent: "center", alignItems: "center" },
-  progressContainer: { flex: 1, alignItems: "center", gap: 8 },
-  progressBar: { width: "100%", height: 6, borderRadius: 3, overflow: "hidden" },
-  progressFill: { height: "100%", borderRadius: 3 },
-  stepText: { color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 1 },
-  scrollContent: { paddingHorizontal: 30, paddingTop: 40 },
-  content: { flex: 1, alignItems: "center" },
-  iconBox: { marginBottom: 30 },
-  iconCircle: { width: 80, height: 80, borderRadius: 40, justifyContent: "center", alignItems: "center", overflow: "hidden", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
-  question: { color: "#fff", fontSize: 32, fontFamily: "Outfit_900Black", textAlign: "center", marginBottom: 12, lineHeight: 40 },
-  subtitle: { color: "rgba(255,255,255,0.6)", fontSize: 16, fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 40, lineHeight: 24 },
-  inputArea: { width: "100%", marginBottom: 40 },
-  textInput: { 
-    width: "100%", 
-    backgroundColor: "rgba(255,255,255,0.05)", 
-    borderRadius: 20, 
-    padding: 24, 
-    color: "#fff", 
-    fontSize: 20, 
-    fontFamily: "Inter_600SemiBold",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    textAlign: "center"
-  },
-  numberInputBox: { 
-    flexDirection: "row", 
-    alignItems: "center", 
+  header: { paddingHorizontal: 30, paddingBottom: 20 },
+  progressBarContainer: { height: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" },
+  progressFillMain: { height: "100%", backgroundColor: COLORS.neonEmerald, borderRadius: 3 },
+  content: { alignItems: "center", paddingHorizontal: 30, paddingTop: 20 },
+  mockupWrapper: { 
+    width: SCREEN_WIDTH - 60, 
+    height: 320, 
+    backgroundColor: "rgba(255,255,255,0.03)", 
+    borderRadius: 32, 
+    borderWidth: 1, 
+    borderColor: "rgba(255,255,255,0.08)",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)", 
-    borderRadius: 20, 
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)"
+    alignItems: "center",
+    padding: 20,
+    marginBottom: 40,
+    overflow: "hidden"
   },
-  currencyPrefix: { color: "#10b981", fontSize: 32, fontFamily: "Outfit_700Bold", marginRight: 8 },
-  numberInput: { 
-    flex: 1, 
-    paddingVertical: 24, 
-    color: "#fff", 
-    fontSize: 40, 
-    fontFamily: "Outfit_700Bold",
-    textAlign: "left"
-  },
-  optionsGrid: { gap: 12 },
-  optionCard: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    justifyContent: "space-between", 
-    padding: 20, 
-    borderRadius: 20, 
-    borderWidth: 1 
-  },
-  optionLabel: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
-  optionCheck: { width: 24, height: 24, borderRadius: 12, justifyContent: "center", alignItems: "center" },
-  continueBtn: { width: "100%", height: 64, borderRadius: 20, overflow: "hidden", marginTop: 20 },
-  btnGradient: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
-  btnText: { color: "#01241c", fontSize: 18, fontFamily: "Outfit_700Bold" },
+  mockContainer: { width: "100%", gap: 12 },
+  mockCard: { padding: 16, borderRadius: 16, gap: 4 },
+  mockCardLabel: { color: "rgba(255,255,255,0.8)", fontSize: 10, fontFamily: "Outfit_700Bold" },
+  mockCardValue: { color: "#fff", fontSize: 24, fontFamily: "Outfit_900Black" },
+  mockRow: { flexDirection: "row", gap: 10 },
+  mockHalfCard: { flex: 1, backgroundColor: "rgba(255,255,255,0.05)", padding: 12, borderRadius: 14 },
+  mockSmallLabel: { color: "rgba(255,255,255,0.5)", fontSize: 9, fontFamily: "Inter_600SemiBold" },
+  mockSmallValue: { color: "#fff", fontSize: 14, fontFamily: "Outfit_700Bold", marginTop: 2 },
+  mockListCard: { backgroundColor: "rgba(255,255,255,0.05)", padding: 16, borderRadius: 16 },
+  mockLargeValue: { color: "#fff", fontSize: 20, fontFamily: "Outfit_700Bold", marginTop: 4, marginBottom: 10 },
+  mockProgressBar: { height: 4, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 2, overflow: "hidden" },
+  mockProgressFill: { height: "100%", backgroundColor: COLORS.neonEmerald },
+  mockTinyText: { color: "rgba(255,255,255,0.4)", fontSize: 9, marginTop: 6 },
+  
+  mockChartBox: { height: 120, justifyContent: "flex-end", marginBottom: 10 },
+  mockBars: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-around", gap: 10 },
+  mockBar: { width: 15, backgroundColor: COLORS.neonEmerald, borderRadius: 4, opacity: 0.8 },
+  mockCategoryRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.05)" },
+  mockIconCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: "#ef4444", justifyContent: "center", alignItems: "center" },
+  mockLineShort: { width: 60, height: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, marginBottom: 4 },
+  mockLineLong: { width: 100, height: 4, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 2 },
+  mockPrice: { color: "#fff", fontSize: 14, fontFamily: "Outfit_700Bold" },
+
+  mockGoalCard: { backgroundColor: "rgba(255,255,255,0.05)", padding: 16, borderRadius: 16, marginBottom: 8 },
+  mockGoalTitle: { color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" },
+  mockGoalAmounts: { flexDirection: "row", justifyContent: "space-between", marginTop: 8, marginBottom: 8 },
+  mockGoalCurrent: { color: COLORS.neonEmerald, fontSize: 14, fontFamily: "Outfit_700Bold" },
+  mockGoalTarget: { color: "rgba(255,255,255,0.4)", fontSize: 12 },
+  mockGoalBar: { height: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" },
+  mockGoalFill: { height: "100%", backgroundColor: COLORS.neonEmerald },
+
+  mockAiBubble: { backgroundColor: "rgba(255,255,255,0.1)", padding: 16, borderRadius: 16, borderBottomLeftRadius: 4 },
+  mockAiText: { color: "#fff", fontSize: 13, fontFamily: "Inter_500Medium", lineHeight: 20 },
+  mockAiInput: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(255,255,255,0.05)", padding: 14, borderRadius: 20, marginTop: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  mockAiPlaceholder: { color: "rgba(255,255,255,0.3)", fontSize: 12 },
+
+  textWrapper: { alignItems: "center", marginBottom: 50 },
+  title: { color: "#fff", fontSize: 32, fontFamily: "Outfit_900Black", textAlign: "center", marginBottom: 15 },
+  desc: { color: COLORS.textMuted, fontSize: 18, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 28, opacity: 0.8 },
+  nextBtnContainer: { width: "100%", shadowColor: COLORS.neonEmerald, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 20 },
+  nextBtn: { height: 64, borderRadius: 24, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12 },
+  nextBtnText: { color: COLORS.forest, fontSize: 20, fontFamily: "Outfit_700Bold" },
 });
