@@ -99,6 +99,7 @@ export default function AIScreen() {
   const callAIAgent = async (userMessage: string, history: Message[]) => {
     const text = userMessage.toLowerCase();
     const API_KEY = process.env.EXPO_PUBLIC_AI_API_KEY;
+    const localizedObjective = t[`obj${financialContext.objective.charAt(0).toUpperCase() + financialContext.objective.slice(1)}` as keyof typeof t] || financialContext.objective;
 
     // 1. Try Real API
     if (API_KEY && API_KEY !== "REPLACE_WITH_YOUR_OPENAI_KEY") {
@@ -109,7 +110,7 @@ export default function AIScreen() {
           .replace("{income}", financialContext.income.toString())
           .replace("{expenses}", financialContext.expenses.toString())
           .replace("{patrimony}", financialContext.patrimony.toString())
-          .replace("{objective}", financialContext.objective);
+          .replace("{objective}", localizedObjective);
 
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -157,12 +158,12 @@ export default function AIScreen() {
 
     // SAVINGS & INVESTMENTS
     if (text.includes("poup") || text.includes("invest") || text.includes("dinheiro")) {
-      return `Com um saldo de **${formatCurrency(financialContext.balance, currency, true)}**, estás numa posição estratégica. Para o teu objetivo de **${t[`obj${financialContext.objective.charAt(0).toUpperCase() + financialContext.objective.slice(1)}` as keyof typeof t] || financialContext.objective}**, recomendo que tentes poupar pelo menos 20% do que ganhas. Queres que calcule esse valor para ti?`;
+      return `Com um saldo de **${formatCurrency(financialContext.balance, currency, true)}**, estás numa posição estratégica para o teu objetivo de **${localizedObjective}**. Recomendo tentares poupar pelo menos 20% do teu rendimento. Queres que calcule esse valor?`;
     }
 
     // CONVERSATIONAL FALLBACK
     if (isFollowUp) {
-      return `Entendo. Relativamente ao que disseste antes, acho que o mais importante para atingires o teu objetivo de **${t[`obj${financialContext.objective.charAt(0).toUpperCase() + financialContext.objective.slice(1)}` as keyof typeof t] || financialContext.objective}** é manter a consistência. Gostarias que eu fizesse alguma simulação específica?`;
+      return `Entendo. Relativamente ao que disseste antes, acho que o mais importante para atingires o teu objetivo de **${localizedObjective}** é manter a consistência. Gostarias que eu fizesse alguma simulação específica?`;
     }
 
     return `Olá ${profile.name?.split(" ")[0] || "Afonso"}! Detetei que o teu saldo atual é de **${formatCurrency(financialContext.balance, currency, true)}**. Em que posso ajudar na tua estratégia financeira hoje?`;
