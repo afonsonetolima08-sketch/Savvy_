@@ -16,10 +16,15 @@ import {
 import Animated, { 
   FadeInDown, 
   FadeInUp, 
+  FadeOut,
   useAnimatedStyle, 
   useSharedValue, 
   withSpring,
   withTiming,
+  withRepeat,
+  withSequence,
+  interpolate,
+  Extrapolate
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -29,67 +34,64 @@ import { useApp } from "@/context/AppContext";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const COLORS = {
-  forest: "#01241c",
-  deepEmerald: "#064e3b",
+  forest: "#011612",
+  deepEmerald: "#01241c",
   neonEmerald: "#10b981",
   brightMint: "#34d399",
+  gold: "#fbbf24",
   white: "#ffffff",
-  textMuted: "#a7f3d0",
+  textMuted: "rgba(167, 243, 208, 0.6)",
 };
 
-export default function UnifiedEntryScreen() {
+export default function PremiumEntryScreen() {
   const insets = useSafeAreaInsets();
   const app = useApp();
   
   const [viewMode, setViewMode] = useState<"splash" | "tour">("splash");
   const [currentStep, setCurrentStep] = useState(0);
-  const progress = useSharedValue(25);
 
   const splashOpacity = useSharedValue(1);
-  const splashScale = useSharedValue(1);
+  const splashScale = useSharedValue(0.9);
+  const bgRotation = useSharedValue(0);
 
   const steps = [
     {
-      title: "O teu resumo financeiro",
-      desc: "Acompanha o teu saldo do mês, ganhos, gastos e o teu Património Atual num só lugar.",
+      title: "Resumo de Elite",
+      desc: "Domina o teu património global com uma visão consolidada e inteligente.",
       type: "dashboard"
     },
     {
-      title: "Percebe para onde vai o teu dinheiro",
-      desc: "Analisa os teus gastos por mês ou por categoria e visualiza o histórico.",
+      title: "Análise Preditiva",
+      desc: "Descobre padrões ocultos nos teus gastos com gráficos de alta precisão.",
       type: "analysis"
     },
     {
-      title: "Define e alcança os teus objetivos",
-      desc: "Cria objetivos financeiros e aloca o teu Património para os atingir.",
+      title: "Metas Estratégicas",
+      desc: "Aloca capital para os teus sonhos e acompanha o progresso em tempo real.",
       type: "goals"
     },
     {
-      title: "O teu assistente pessoal",
-      desc: "Faz perguntas ao Savvy GPT sobre poupança e estratégias — disponível 24/7.",
+      title: "Inteligência Artificial",
+      desc: "O teu co-piloto financeiro disponível 24/7 para otimizar cada decisão.",
       type: "ai"
     }
   ];
 
   useEffect(() => {
+    bgRotation.value = withRepeat(withTiming(360, { duration: 20000 }), -1, false);
+    
     const timer = setTimeout(async () => {
        await checkRedirection();
     }, 2500);
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    if (viewMode === "tour") {
-      progress.value = withSpring(((currentStep + 1) / steps.length) * 100);
-    }
-  }, [currentStep, viewMode]);
-
   const checkRedirection = async () => {
     try {
       const isReturning = await AsyncStorage.getItem("savvy_returning_user");
       
-      splashOpacity.value = withTiming(0, { duration: 800 });
-      splashScale.value = withTiming(1.1, { duration: 800 });
+      splashOpacity.value = withTiming(0, { duration: 1000 });
+      splashScale.value = withTiming(1.2, { duration: 1000 });
 
       if (isReturning === "true" && app?.session) {
         handleFinalStart();
@@ -102,7 +104,7 @@ export default function UnifiedEntryScreen() {
   };
 
   const handleNext = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (currentStep < steps.length - 1) {
       setCurrentStep(s => s + 1);
     } else {
@@ -123,84 +125,86 @@ export default function UnifiedEntryScreen() {
     }
   };
 
-  const progressStyle = useAnimatedStyle(() => ({
-    width: `${progress.value}%`,
-  }));
-
   const splashAnimatedStyle = useAnimatedStyle(() => ({
     opacity: splashOpacity.value,
     transform: [{ scale: splashScale.value }]
   }));
 
+  const bgAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${bgRotation.value}deg` }]
+  }));
+
   const renderMockup = (type: string) => {
-    switch (type) {
-      case "dashboard":
-        return (
-          <View style={styles.mockContainer}>
-            <View style={[styles.mockCard, { backgroundColor: "#ef4444" }]}>
-              <Text style={styles.mockCardLabel}>Saldo do Mês</Text>
-              <Text style={styles.mockCardValue}>2.450,00 €</Text>
+    return (
+      <Animated.View key={type} entering={FadeInDown.springify()} exiting={FadeOut} style={styles.mockDevice}>
+        <LinearGradient colors={["rgba(255,255,255,0.05)", "transparent"]} style={styles.mockOverlay} />
+        {type === "dashboard" && (
+          <View style={styles.mockContent}>
+            <View style={[styles.mockRealCard, { backgroundColor: "#ef4444" }]}>
+              <Text style={styles.mockRealLabel}>SALDO DO MÊS</Text>
+              <Text style={styles.mockRealValue}>2.450,00 €</Text>
+              <View style={styles.mockRealTag}><Text style={styles.mockRealTagText}>+12.4% vs mês ant.</Text></View>
             </View>
-            <View style={styles.mockRow}>
-              <View style={styles.mockHalfCard}><Text style={styles.mockSmallLabel}>Ganhos</Text><Text style={styles.mockSmallValue}>+3.200 €</Text></View>
-              <View style={styles.mockHalfCard}><Text style={styles.mockSmallLabel}>Gastos</Text><Text style={styles.mockSmallValue}>-750 €</Text></View>
+            <View style={styles.mockRealRow}>
+              <View style={styles.mockRealMini}><Text style={styles.mockRealMiniLabel}>GANHOS</Text><Text style={styles.mockRealMiniValue}>+3.2k</Text></View>
+              <View style={styles.mockRealMini}><Text style={styles.mockRealMiniLabel}>GASTOS</Text><Text style={styles.mockRealMiniValue}>-750</Text></View>
             </View>
-            <View style={styles.mockListCard}>
-               <Text style={styles.mockSmallLabel}>Património Atual</Text>
-               <Text style={styles.mockLargeValue}>12.540,80 €</Text>
-               <View style={styles.mockProgressBar}><View style={[styles.mockProgressFill, { width: "65%" }]} /></View>
-               <Text style={styles.mockTinyText}>65% do orçamento usado</Text>
+            <View style={styles.mockRealSection}>
+               <Text style={styles.mockRealSectionTitle}>PATRIMÓNIO ATUAL</Text>
+               <Text style={styles.mockRealTotal}>12.540,80 €</Text>
+               <View style={styles.mockRealBar}><View style={[styles.mockRealFill, { width: "65%" }]} /></View>
             </View>
           </View>
-        );
-      case "analysis":
-        return (
-          <View style={styles.mockContainer}>
-             <View style={styles.mockChartBox}>
-                <View style={styles.mockBars}>
-                   {[40, 70, 45, 90, 60, 80].map((h, i) => (
-                     <View key={i} style={[styles.mockBar, { height: h }]} />
+        )}
+        {type === "analysis" && (
+          <View style={styles.mockContent}>
+             <View style={styles.mockRealChart}>
+                <View style={styles.mockBarsContainer}>
+                   {[30, 50, 40, 80, 60, 95].map((h, i) => (
+                     <View key={i} style={[styles.mockBarReal, { height: h, opacity: i === 5 ? 1 : 0.4 }]} />
                    ))}
                 </View>
              </View>
-             <View style={styles.mockCategoryRow}>
-                <View style={styles.mockIconCircle}><Feather name="shopping-cart" size={12} color="#fff" /></View>
-                <View style={{ flex: 1 }}><View style={styles.mockLineShort} /><View style={styles.mockLineLong} /></View>
-                <Text style={styles.mockPrice}>-120€</Text>
+             <View style={styles.mockRealCat}>
+                <View style={styles.mockCatIcon}><Feather name="shopping-bag" size={14} color={COLORS.brightMint} /></View>
+                <View style={{ flex: 1 }}><View style={styles.mockCatLine1} /><View style={styles.mockCatLine2} /></View>
+                <Text style={styles.mockCatPrice}>-240€</Text>
              </View>
-             <View style={styles.mockCategoryRow}>
-                <View style={[styles.mockIconCircle, { backgroundColor: "#3b82f6" }]}><Feather name="home" size={12} color="#fff" /></View>
-                <View style={{ flex: 1 }}><View style={styles.mockLineShort} /><View style={styles.mockLineLong} /></View>
-                <Text style={styles.mockPrice}>-600€</Text>
+             <View style={styles.mockRealCat}>
+                <View style={[styles.mockCatIcon, { backgroundColor: "rgba(59, 130, 246, 0.2)" }]}><Feather name="coffee" size={14} color="#3b82f6" /></View>
+                <View style={{ flex: 1 }}><View style={styles.mockCatLine1} /><View style={styles.mockCatLine2} /></View>
+                <Text style={styles.mockCatPrice}>-45€</Text>
              </View>
           </View>
-        );
-      case "goals":
-        return (
-          <View style={styles.mockContainer}>
-            <View style={styles.mockGoalCard}>
-               <Text style={styles.mockGoalTitle}>Viagem Japão 🇯🇵</Text>
-               <View style={styles.mockGoalAmounts}><Text style={styles.mockGoalCurrent}>1.200 €</Text><Text style={styles.mockGoalTarget}>de 3.000 €</Text></View>
-               <View style={styles.mockGoalBar}><View style={[styles.mockGoalFill, { width: "40%" }]} /></View>
+        )}
+        {type === "goals" && (
+          <View style={styles.mockContent}>
+            <View style={styles.mockRealGoal}>
+               <View style={styles.mockGoalHead}><Text style={styles.mockGoalName}>Viagem Japão</Text><Text style={styles.mockGoalPerc}>40%</Text></View>
+               <View style={styles.mockGoalBarWrap}><View style={[styles.mockGoalBarFill, { width: "40%" }]} /></View>
+               <Text style={styles.mockGoalDetail}>Faltam 1.800 €</Text>
             </View>
-            <View style={styles.mockGoalCard}>
-               <Text style={styles.mockGoalTitle}>Reserva Emergência</Text>
-               <View style={styles.mockGoalAmounts}><Text style={styles.mockGoalCurrent}>5.000 €</Text><Text style={styles.mockGoalTarget}>de 5.000 €</Text></View>
-               <View style={styles.mockGoalBar}><View style={[styles.mockGoalFill, { width: "100%", backgroundColor: COLORS.neonEmerald }]} /></View>
+            <View style={styles.mockRealGoal}>
+               <View style={styles.mockGoalHead}><Text style={styles.mockGoalName}>Nova Casa</Text><Text style={styles.mockGoalPerc}>12%</Text></View>
+               <View style={styles.mockGoalBarWrap}><View style={[styles.mockGoalBarFill, { width: "12%", backgroundColor: COLORS.gold }]} /></View>
+               <Text style={styles.mockGoalDetail}>Faltam 44k €</Text>
             </View>
           </View>
-        );
-      case "ai":
-        return (
-          <View style={styles.mockContainer}>
-             <View style={styles.mockAiBubble}>
-                <Text style={styles.mockAiText}>"Com base nos teus gastos de lazer, podes poupar **80€** este mês se reduzires as subscrições."</Text>
+        )}
+        {type === "ai" && (
+          <View style={styles.mockContent}>
+             <View style={styles.mockAiMsg}>
+                <View style={styles.mockAiIconSmall}><Feather name="cpu" size={12} color={COLORS.forest} /></View>
+                <Text style={styles.mockAiTextReal}>Detectei um excesso de gastos em **Subscrições**. Podes poupar **45€/mês** se cancelares os serviços que não usas há 3 meses.</Text>
              </View>
-             <View style={styles.mockAiInput}><Text style={styles.mockAiPlaceholder}>Escreve a tua pergunta...</Text><Feather name="send" size={16} color={COLORS.neonEmerald} /></View>
+             <View style={styles.mockAiInputReal}>
+                <Text style={styles.mockAiPlaceholderReal}>Como posso investir 500€?</Text>
+                <View style={styles.mockAiSend}><Feather name="arrow-up" size={14} color={COLORS.forest} /></View>
+             </View>
           </View>
-        );
-      default: return null;
-    }
+        )}
+      </Animated.View>
+    );
   };
 
   if (!app) return null;
@@ -209,10 +213,10 @@ export default function UnifiedEntryScreen() {
     return (
       <View style={styles.splashContainer}>
         <StatusBar barStyle="light-content" />
+        <LinearGradient colors={[COLORS.forest, COLORS.deepEmerald]} style={StyleSheet.absoluteFill} />
         <Animated.View style={[styles.splashBox, splashAnimatedStyle]}>
-          <LinearGradient colors={[COLORS.forest, COLORS.deepEmerald]} style={StyleSheet.absoluteFill} />
-          <Animated.Text entering={FadeInDown.duration(1000).springify()} style={styles.splashText}>Savvy</Animated.Text>
-          <View style={styles.splashLine} />
+          <Text style={styles.splashText}>Savvy</Text>
+          <View style={styles.splashIndicator} />
         </Animated.View>
       </View>
     );
@@ -225,80 +229,104 @@ export default function UnifiedEntryScreen() {
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={[COLORS.forest, COLORS.deepEmerald]} style={StyleSheet.absoluteFill} />
       
+      {/* BACKGROUND PARTICLES */}
+      <Animated.View style={[styles.bgParticles, bgAnimatedStyle]}>
+         <View style={[styles.particle, { top: "10%", left: "20%" }]} />
+         <View style={[styles.particle, { top: "40%", right: "15%", width: 100, height: 100 }]} />
+         <View style={[styles.particle, { bottom: "15%", left: "10%", opacity: 0.1 }]} />
+      </Animated.View>
+
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-         <View style={styles.progressBarContainer}>
-            <Animated.View style={[styles.progressFillMain, progressStyle]} />
+         <View style={styles.stepDots}>
+            {steps.map((_, i) => (
+              <View key={i} style={[styles.dot, currentStep === i && styles.dotActive]} />
+            ))}
          </View>
+         <TouchableOpacity onPress={handleFinalStart}><Text style={styles.skipText}>SALTAR</Text></TouchableOpacity>
       </View>
 
-      <Animated.ScrollView key={currentStep} entering={FadeInDown.springify()} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.mockupWrapper}>
+      <View style={styles.mainContent}>
+        <View style={styles.mockWrapper}>
            {renderMockup(stepData.type)}
         </View>
 
         <View style={styles.textWrapper}>
-           <Animated.Text entering={FadeInUp.delay(200).springify()} style={styles.title}>{stepData.title}</Animated.Text>
-           <Animated.Text entering={FadeInUp.delay(300).springify()} style={styles.desc}>{stepData.desc}</Animated.Text>
+           <Animated.Text key={`t-${currentStep}`} entering={FadeInDown.springify()} style={styles.title}>{stepData.title}</Animated.Text>
+           <Animated.Text key={`d-${currentStep}`} entering={FadeInDown.delay(100).springify()} style={styles.desc}>{stepData.desc}</Animated.Text>
         </View>
 
-        <TouchableOpacity onPress={handleNext} style={styles.nextBtnContainer} activeOpacity={0.9}>
-          <LinearGradient colors={[COLORS.neonEmerald, COLORS.brightMint]} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.nextBtn}>
-            <Text style={styles.nextBtnText}>{currentStep === steps.length - 1 ? "Começar" : "Próximo"}</Text>
-            <Feather name={currentStep === steps.length - 1 ? "zap" : "chevron-right"} size={22} color={COLORS.forest} />
+        <TouchableOpacity onPress={handleNext} activeOpacity={0.9} style={styles.nextBtn}>
+          <LinearGradient colors={[COLORS.neonEmerald, COLORS.brightMint]} start={{x:0, y:0}} end={{x:1, y:1}} style={styles.btnGradient}>
+             <Text style={styles.btnText}>{currentStep === steps.length - 1 ? "COMEÇAR AGORA" : "PRÓXIMO"}</Text>
+             <Feather name="arrow-right" size={20} color={COLORS.forest} />
           </LinearGradient>
         </TouchableOpacity>
-      </Animated.ScrollView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  splashContainer: { flex: 1, backgroundColor: COLORS.forest },
-  splashBox: { flex: 1, justifyContent: "center", alignItems: "center" },
-  splashText: { color: "#fff", fontSize: 60, fontFamily: "Outfit_900Black", letterSpacing: -2 },
-  splashLine: { width: 40, height: 4, backgroundColor: COLORS.neonEmerald, marginTop: 10, borderRadius: 2 },
-  header: { paddingHorizontal: 30, paddingBottom: 20 },
-  progressBarContainer: { height: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" },
-  progressFillMain: { height: "100%", backgroundColor: COLORS.neonEmerald, borderRadius: 3 },
-  content: { alignItems: "center", paddingHorizontal: 30, paddingTop: 20 },
-  mockupWrapper: { width: SCREEN_WIDTH - 60, height: 320, backgroundColor: "rgba(255,255,255,0.03)", borderRadius: 32, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)", justifyContent: "center", alignItems: "center", padding: 20, marginBottom: 40, overflow: "hidden" },
-  mockContainer: { width: "100%", gap: 12 },
-  mockCard: { padding: 16, borderRadius: 16, gap: 4 },
-  mockCardLabel: { color: "rgba(255,255,255,0.8)", fontSize: 10, fontFamily: "Outfit_700Bold" },
-  mockCardValue: { color: "#fff", fontSize: 24, fontFamily: "Outfit_900Black" },
-  mockRow: { flexDirection: "row", gap: 10 },
-  mockHalfCard: { flex: 1, backgroundColor: "rgba(255,255,255,0.05)", padding: 12, borderRadius: 14 },
-  mockSmallLabel: { color: "rgba(255,255,255,0.5)", fontSize: 9, fontFamily: "Inter_600SemiBold" },
-  mockSmallValue: { color: "#fff", fontSize: 14, fontFamily: "Outfit_700Bold", marginTop: 2 },
-  mockListCard: { backgroundColor: "rgba(255,255,255,0.05)", padding: 16, borderRadius: 16 },
-  mockLargeValue: { color: "#fff", fontSize: 20, fontFamily: "Outfit_700Bold", marginTop: 4, marginBottom: 10 },
-  mockProgressBar: { height: 4, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 2, overflow: "hidden" },
-  mockProgressFill: { height: "100%", backgroundColor: COLORS.neonEmerald },
-  mockTinyText: { color: "rgba(255,255,255,0.4)", fontSize: 9, marginTop: 6 },
-  mockChartBox: { height: 120, justifyContent: "flex-end", marginBottom: 10 },
-  mockBars: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-around", gap: 10 },
-  mockBar: { width: 15, backgroundColor: COLORS.neonEmerald, borderRadius: 4, opacity: 0.8 },
-  mockCategoryRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.05)" },
-  mockIconCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: "#ef4444", justifyContent: "center", alignItems: "center" },
-  mockLineShort: { width: 60, height: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, marginBottom: 4 },
-  mockLineLong: { width: 100, height: 4, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 2 },
-  mockPrice: { color: "#fff", fontSize: 14, fontFamily: "Outfit_700Bold" },
-  mockGoalCard: { backgroundColor: "rgba(255,255,255,0.05)", padding: 16, borderRadius: 16, marginBottom: 8 },
-  mockGoalTitle: { color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" },
-  mockGoalAmounts: { flexDirection: "row", justifyContent: "space-between", marginTop: 8, marginBottom: 8 },
-  mockGoalCurrent: { color: COLORS.neonEmerald, fontSize: 14, fontFamily: "Outfit_700Bold" },
-  mockGoalTarget: { color: "rgba(255,255,255,0.4)", fontSize: 12 },
-  mockGoalBar: { height: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" },
-  mockGoalFill: { height: "100%", backgroundColor: COLORS.neonEmerald },
-  mockAiBubble: { backgroundColor: "rgba(255,255,255,0.1)", padding: 16, borderRadius: 16, borderBottomLeftRadius: 4 },
-  mockAiText: { color: "#fff", fontSize: 13, fontFamily: "Inter_500Medium", lineHeight: 20 },
-  mockAiInput: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(255,255,255,0.05)", padding: 14, borderRadius: 20, marginTop: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
-  mockAiPlaceholder: { color: "rgba(255,255,255,0.3)", fontSize: 12 },
-  textWrapper: { alignItems: "center", marginBottom: 50 },
-  title: { color: "#fff", fontSize: 32, fontFamily: "Outfit_900Black", textAlign: "center", marginBottom: 15 },
-  desc: { color: COLORS.textMuted, fontSize: 18, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 28, opacity: 0.8 },
-  nextBtnContainer: { width: "100%", shadowColor: COLORS.neonEmerald, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 20 },
-  nextBtn: { height: 64, borderRadius: 24, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12 },
-  nextBtnText: { color: COLORS.forest, fontSize: 20, fontFamily: "Outfit_700Bold" },
+  container: { flex: 1, backgroundColor: COLORS.forest },
+  splashContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  splashBox: { alignItems: "center" },
+  splashText: { color: "#fff", fontSize: 72, fontFamily: "Outfit_900Black", letterSpacing: -3 },
+  splashIndicator: { width: 50, height: 4, backgroundColor: COLORS.neonEmerald, borderRadius: 2, marginTop: 15 },
+  bgParticles: { ...StyleSheet.absoluteFillObject, opacity: 0.4 },
+  particle: { position: "absolute", width: 150, height: 150, borderRadius: 75, backgroundColor: COLORS.neonEmerald, opacity: 0.15 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 30 },
+  stepDots: { flexDirection: "row", gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.2)" },
+  dotActive: { width: 24, backgroundColor: COLORS.neonEmerald },
+  skipText: { color: COLORS.textMuted, fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 1 },
+  mainContent: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 },
+  mockWrapper: { width: "100%", height: 380, justifyContent: "center", alignItems: "center", marginBottom: 30 },
+  mockDevice: { width: 260, height: 360, backgroundColor: "rgba(255,255,255,0.03)", borderRadius: 40, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)", padding: 20, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.5, shadowRadius: 30, elevation: 10 },
+  mockOverlay: { ...StyleSheet.absoluteFillObject },
+  mockContent: { flex: 1, gap: 15 },
+  mockRealCard: { padding: 15, borderRadius: 20, gap: 5 },
+  mockRealLabel: { color: "rgba(255,255,255,0.6)", fontSize: 8, fontFamily: "Outfit_700Bold" },
+  mockRealValue: { color: "#fff", fontSize: 22, fontFamily: "Outfit_900Black" },
+  mockRealTag: { backgroundColor: "rgba(0,0,0,0.2)", alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  mockRealTagText: { color: "#fff", fontSize: 8, fontFamily: "Inter_600SemiBold" },
+  mockRealRow: { flexDirection: "row", gap: 10 },
+  mockRealMini: { flex: 1, backgroundColor: "rgba(255,255,255,0.05)", padding: 12, borderRadius: 15 },
+  mockRealMiniLabel: { color: "rgba(255,255,255,0.4)", fontSize: 7, fontFamily: "Inter_700Bold" },
+  mockRealMiniValue: { color: "#fff", fontSize: 14, fontFamily: "Outfit_700Bold", marginTop: 2 },
+  mockRealSection: { backgroundColor: "rgba(255,255,255,0.03)", padding: 15, borderRadius: 20 },
+  mockRealSectionTitle: { color: "rgba(255,255,255,0.4)", fontSize: 8, fontFamily: "Inter_700Bold", marginBottom: 5 },
+  mockRealTotal: { color: "#fff", fontSize: 18, fontFamily: "Outfit_700Bold" },
+  mockRealBar: { height: 4, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 2, marginTop: 10 },
+  mockRealFill: { height: "100%", backgroundColor: COLORS.neonEmerald, borderRadius: 2 },
+
+  mockRealChart: { height: 100, justifyContent: "flex-end", marginBottom: 10 },
+  mockBarsContainer: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-around", gap: 8 },
+  mockBarReal: { width: 12, backgroundColor: COLORS.neonEmerald, borderRadius: 3 },
+  mockRealCat: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.05)" },
+  mockCatIcon: { width: 28, height: 28, borderRadius: 10, backgroundColor: "rgba(16, 185, 129, 0.2)", justifyContent: "center", alignItems: "center" },
+  mockCatLine1: { width: 40, height: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, marginBottom: 4 },
+  mockCatLine2: { width: 80, height: 4, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 2 },
+  mockCatPrice: { color: "#fff", fontSize: 12, fontFamily: "Outfit_700Bold" },
+
+  mockRealGoal: { backgroundColor: "rgba(255,255,255,0.05)", padding: 15, borderRadius: 20, marginBottom: 10 },
+  mockGoalHead: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
+  mockGoalName: { color: "#fff", fontSize: 12, fontFamily: "Inter_700Bold" },
+  mockGoalPerc: { color: COLORS.neonEmerald, fontSize: 12, fontFamily: "Outfit_700Bold" },
+  mockGoalBarWrap: { height: 5, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" },
+  mockGoalBarFill: { height: "100%", backgroundColor: COLORS.neonEmerald },
+  mockGoalDetail: { color: "rgba(255,255,255,0.4)", fontSize: 8, marginTop: 5 },
+
+  mockAiMsg: { backgroundColor: COLORS.white, padding: 15, borderRadius: 20, borderBottomLeftRadius: 5 },
+  mockAiIconSmall: { width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.brightMint, justifyContent: "center", alignItems: "center", marginBottom: 8 },
+  mockAiTextReal: { color: COLORS.forest, fontSize: 11, fontFamily: "Inter_600SemiBold", lineHeight: 16 },
+  mockAiInputReal: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(255,255,255,0.05)", padding: 12, borderRadius: 25, marginTop: 25, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  mockAiPlaceholderReal: { color: "rgba(255,255,255,0.3)", fontSize: 10 },
+  mockAiSend: { width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.brightMint, justifyContent: "center", alignItems: "center" },
+
+  textWrapper: { alignItems: "center", marginBottom: 40 },
+  title: { color: "#fff", fontSize: 36, fontFamily: "Outfit_900Black", textAlign: "center", marginBottom: 15, letterSpacing: -1 },
+  desc: { color: COLORS.textMuted, fontSize: 18, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 28 },
+  nextBtn: { width: "100%", height: 64, borderRadius: 24, overflow: "hidden" },
+  btnGradient: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12 },
+  btnText: { color: COLORS.forest, fontSize: 18, fontFamily: "Outfit_900Black", letterSpacing: 1 },
 });
