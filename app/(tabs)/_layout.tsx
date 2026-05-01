@@ -68,13 +68,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="tips"
-        options={{
-          title: t.tabTips,
-          tabBarIcon: ({ color }) => <Feather name="zap" size={22} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="ai"
         options={{
           title: t.tabAI,
