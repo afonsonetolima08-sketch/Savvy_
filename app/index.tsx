@@ -1,42 +1,32 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
 import { BlurView } from "expo-blur";
-import React, { useEffect, useState } from "react";
+import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
+import React, { useState, useEffect } from "react";
 import {
-  Dimensions,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Image,
+  Dimensions,
+  Platform,
   StatusBar,
 } from "react-native";
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-  FadeOut,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
+import Animated, { 
+  FadeInDown, 
+  FadeInUp, 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withSpring,
   withTiming,
-  withSequence,
-  useAnimatedScrollHandler,
-  interpolate,
-  Extrapolate,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useApp } from "@/context/AppContext";
-import { useT } from "@/hooks/useTranslations";
-import { BrandLogo } from "@/components/BrandLogo";
 
-const isServer = typeof window === "undefined";
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = isServer 
-  ? { width: 1280, height: 800 } 
-  : Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const COLORS = {
   forest: "#01241c",
@@ -47,84 +37,94 @@ const COLORS = {
   textMuted: "#a7f3d0",
 };
 
-export default function EntryScreen() {
+export default function UnifiedEntryScreen() {
   const insets = useSafeAreaInsets();
   const app = useApp();
-  const t = useT();
+  
+  const [viewMode, setViewMode] = useState<"splash" | "tour">("splash");
+  const [currentStep, setCurrentStep] = useState(0);
+  const progress = useSharedValue(25);
 
-  const [viewMode, setViewMode] = useState<"splash" | "landing">("splash");
-  const [hasSession, setHasSession] = useState(false);
-  const scrollY = useSharedValue(0);
-
-  // Background Glow Orbs Animations
-  const orb1Y = useSharedValue(100);
-  const orb2Y = useSharedValue(SCREEN_HEIGHT - 300);
-
-  // Splash Animations
   const splashOpacity = useSharedValue(1);
   const splashScale = useSharedValue(1);
-  const splashTextY = useSharedValue(0);
+
+  const steps = [
+    {
+      title: "O teu resumo financeiro",
+      desc: "Acompanha o teu saldo do mês, ganhos, gastos e o teu Património Atual num só lugar.",
+      type: "dashboard"
+    },
+    {
+      title: "Percebe para onde vai o teu dinheiro",
+      desc: "Analisa os teus gastos por mês ou por categoria e visualiza o histórico.",
+      type: "analysis"
+    },
+    {
+      title: "Define e alcança os teus objetivos",
+      desc: "Cria objetivos financeiros e aloca o teu Património para os atingir.",
+      type: "goals"
+    },
+    {
+      title: "O teu assistente pessoal",
+      desc: "Faz perguntas ao Savvy GPT sobre poupança e estratégias — disponível 24/7.",
+      type: "ai"
+    }
+  ];
 
   useEffect(() => {
-    orb1Y.value = withRepeat(withTiming(300, { duration: 10000 }), -1, true);
-    orb2Y.value = withRepeat(withTiming(SCREEN_HEIGHT - 600, { duration: 12000 }), -1, true);
-    
-    // Splash sequence
     const timer = setTimeout(async () => {
        await checkRedirection();
     }, 2500);
-
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (viewMode === "tour") {
+      progress.value = withSpring(((currentStep + 1) / steps.length) * 100);
+    }
+  }, [currentStep, viewMode]);
 
   const checkRedirection = async () => {
     try {
       const isReturning = await AsyncStorage.getItem("savvy_returning_user");
       
-      // Animate out splash
       splashOpacity.value = withTiming(0, { duration: 800 });
       splashScale.value = withTiming(1.1, { duration: 800 });
 
       if (isReturning === "true" && app?.session) {
-        // Direct to main if returning and logged in
-        handleStart();
+        handleFinalStart();
       } else {
-        // Show landing if new or not logged in
-        setViewMode("landing");
+        setViewMode("tour");
       }
     } catch (e) {
-      setViewMode("landing");
+      setViewMode("tour");
     }
   };
 
-  const onScroll = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
-    },
-  });
+  const handleNext = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(s => s + 1);
+    } else {
+      handleFinalStart();
+    }
+  };
 
-  // Parallax styles
-  const heroImageStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: interpolate(scrollY.value, [0, SCREEN_HEIGHT], [0, 200], Extrapolate.CLAMP) },
-      { scale: interpolate(scrollY.value, [-100, 0, SCREEN_HEIGHT], [1.2, 1, 1.1], Extrapolate.CLAMP) }
-    ],
-    opacity: interpolate(scrollY.value, [0, SCREEN_HEIGHT * 0.7], [0.6, 0.2], Extrapolate.CLAMP)
-  }));
+  const handleFinalStart = async () => {
+    try {
+      await AsyncStorage.setItem("savvy_returning_user", "true");
+    } catch (e) {}
 
-  const heroTextStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: interpolate(scrollY.value, [0, 500], [0, -50], Extrapolate.CLAMP) }
-    ],
-    opacity: interpolate(scrollY.value, [0, 400], [1, 0], Extrapolate.CLAMP)
-  }));
+    if (app?.session) {
+      if (app.profile.onboardingCompleted) router.push("/(tabs)");
+      else router.push("/onboarding");
+    } else {
+      router.push("/(auth)/login");
+    }
+  };
 
-  const meshOrb1Style = useAnimatedStyle(() => ({
-    transform: [{ translateY: orb1Y.value }],
-  }));
-
-  const meshOrb2Style = useAnimatedStyle(() => ({
-    transform: [{ translateY: orb2Y.value }],
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${progress.value}%`,
   }));
 
   const splashAnimatedStyle = useAnimatedStyle(() => ({
@@ -132,21 +132,78 @@ export default function EntryScreen() {
     transform: [{ scale: splashScale.value }]
   }));
 
-  if (!app) return null;
-  const { session, profile } = app;
-
-  const handleStart = async () => {
-    try {
-      await AsyncStorage.setItem("savvy_returning_user", "true");
-    } catch (e) {}
-
-    if (session) {
-      if (profile.onboardingCompleted) router.push("/(tabs)");
-      else router.push("/onboarding");
-    } else {
-      router.push("/(auth)/login");
+  const renderMockup = (type: string) => {
+    switch (type) {
+      case "dashboard":
+        return (
+          <View style={styles.mockContainer}>
+            <View style={[styles.mockCard, { backgroundColor: "#ef4444" }]}>
+              <Text style={styles.mockCardLabel}>Saldo do Mês</Text>
+              <Text style={styles.mockCardValue}>2.450,00 €</Text>
+            </View>
+            <View style={styles.mockRow}>
+              <View style={styles.mockHalfCard}><Text style={styles.mockSmallLabel}>Ganhos</Text><Text style={styles.mockSmallValue}>+3.200 €</Text></View>
+              <View style={styles.mockHalfCard}><Text style={styles.mockSmallLabel}>Gastos</Text><Text style={styles.mockSmallValue}>-750 €</Text></View>
+            </View>
+            <View style={styles.mockListCard}>
+               <Text style={styles.mockSmallLabel}>Património Atual</Text>
+               <Text style={styles.mockLargeValue}>12.540,80 €</Text>
+               <View style={styles.mockProgressBar}><View style={[styles.mockProgressFill, { width: "65%" }]} /></View>
+               <Text style={styles.mockTinyText}>65% do orçamento usado</Text>
+            </View>
+          </View>
+        );
+      case "analysis":
+        return (
+          <View style={styles.mockContainer}>
+             <View style={styles.mockChartBox}>
+                <View style={styles.mockBars}>
+                   {[40, 70, 45, 90, 60, 80].map((h, i) => (
+                     <View key={i} style={[styles.mockBar, { height: h }]} />
+                   ))}
+                </View>
+             </View>
+             <View style={styles.mockCategoryRow}>
+                <View style={styles.mockIconCircle}><Feather name="shopping-cart" size={12} color="#fff" /></View>
+                <View style={{ flex: 1 }}><View style={styles.mockLineShort} /><View style={styles.mockLineLong} /></View>
+                <Text style={styles.mockPrice}>-120€</Text>
+             </View>
+             <View style={styles.mockCategoryRow}>
+                <View style={[styles.mockIconCircle, { backgroundColor: "#3b82f6" }]}><Feather name="home" size={12} color="#fff" /></View>
+                <View style={{ flex: 1 }}><View style={styles.mockLineShort} /><View style={styles.mockLineLong} /></View>
+                <Text style={styles.mockPrice}>-600€</Text>
+             </View>
+          </View>
+        );
+      case "goals":
+        return (
+          <View style={styles.mockContainer}>
+            <View style={styles.mockGoalCard}>
+               <Text style={styles.mockGoalTitle}>Viagem Japão 🇯🇵</Text>
+               <View style={styles.mockGoalAmounts}><Text style={styles.mockGoalCurrent}>1.200 €</Text><Text style={styles.mockGoalTarget}>de 3.000 €</Text></View>
+               <View style={styles.mockGoalBar}><View style={[styles.mockGoalFill, { width: "40%" }]} /></View>
+            </View>
+            <View style={styles.mockGoalCard}>
+               <Text style={styles.mockGoalTitle}>Reserva Emergência</Text>
+               <View style={styles.mockGoalAmounts}><Text style={styles.mockGoalCurrent}>5.000 €</Text><Text style={styles.mockGoalTarget}>de 5.000 €</Text></View>
+               <View style={styles.mockGoalBar}><View style={[styles.mockGoalFill, { width: "100%", backgroundColor: COLORS.neonEmerald }]} /></View>
+            </View>
+          </View>
+        );
+      case "ai":
+        return (
+          <View style={styles.mockContainer}>
+             <View style={styles.mockAiBubble}>
+                <Text style={styles.mockAiText}>"Com base nos teus gastos de lazer, podes poupar **80€** este mês se reduzires as subscrições."</Text>
+             </View>
+             <View style={styles.mockAiInput}><Text style={styles.mockAiPlaceholder}>Escreve a tua pergunta...</Text><Feather name="send" size={16} color={COLORS.neonEmerald} /></View>
+          </View>
+        );
+      default: return null;
     }
   };
+
+  if (!app) return null;
 
   if (viewMode === "splash") {
     return (
@@ -154,131 +211,94 @@ export default function EntryScreen() {
         <StatusBar barStyle="light-content" />
         <Animated.View style={[styles.splashBox, splashAnimatedStyle]}>
           <LinearGradient colors={[COLORS.forest, COLORS.deepEmerald]} style={StyleSheet.absoluteFill} />
-          <Animated.Text entering={FadeInDown.duration(1000).springify()} style={styles.splashText}>
-            Savvy
-          </Animated.Text>
-          <Animated.View 
-            entering={FadeInUp.delay(500).duration(1000)}
-            style={styles.splashLine}
-          />
+          <Animated.Text entering={FadeInDown.duration(1000).springify()} style={styles.splashText}>Savvy</Animated.Text>
+          <View style={styles.splashLine} />
         </Animated.View>
       </View>
     );
   }
 
+  const stepData = steps[currentStep];
+
   return (
-    <Animated.View entering={FadeInDown.duration(800)} style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" />
+      <LinearGradient colors={[COLORS.forest, COLORS.deepEmerald]} style={StyleSheet.absoluteFill} />
       
-      {/* CINEMATIC BACKGROUND MESH */}
-      <View style={StyleSheet.absoluteFill}>
-         <LinearGradient colors={[COLORS.forest, COLORS.deepEmerald]} style={StyleSheet.absoluteFill} />
-         <Animated.View style={[styles.glowOrb, styles.orb1, meshOrb1Style]} />
-         <Animated.View style={[styles.glowOrb, styles.orb2, meshOrb2Style]} />
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+         <View style={styles.progressBarContainer}>
+            <Animated.View style={[styles.progressFillMain, progressStyle]} />
+         </View>
       </View>
-      
-      <Animated.ScrollView 
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* HERO SECTION */}
-        <View style={[styles.heroSection, { height: SCREEN_HEIGHT }]}>
-          <Animated.View style={[StyleSheet.absoluteFill, heroImageStyle]}>
-            <Image source={require("@/assets/images/hero_financial.png")} style={styles.heroBgImage} resizeMode="cover" />
-            <LinearGradient colors={["transparent", COLORS.forest]} style={styles.heroOverlay} />
-          </Animated.View>
 
-          <Animated.View style={[styles.heroContent, heroTextStyle, { paddingTop: insets.top + 80 }]}>
-            <View style={styles.badgeWrap}>
-              <BlurView intensity={25} tint="light" style={styles.glassBadge}>
-                <View style={styles.badgeDot} /><Text style={styles.badgeText}>SISTEMA DE ELITE SAVVY</Text>
-              </BlurView>
-            </View>
-            <Text style={styles.heroTitle}>O Futuro das tuas Finanças começa hoje.</Text>
-            <Text style={styles.heroSubtitle}>Sincroniza o teu património global, automatiza as tuas poupanças e deixa a nossa IA guiar cada cêntimo.</Text>
-            <TouchableOpacity onPress={handleStart} activeOpacity={0.9} style={styles.ctaContainer}>
-                <LinearGradient colors={[COLORS.neonEmerald, COLORS.brightMint]} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.ctaButton}>
-                   <Text style={styles.ctaText}>Iniciar Evolução</Text><Feather name="zap" size={24} color={COLORS.forest} />
-                </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
+      <Animated.ScrollView key={currentStep} entering={FadeInDown.springify()} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.mockupWrapper}>
+           {renderMockup(stepData.type)}
         </View>
 
-        {/* BENEFITS */}
-        <View style={styles.benefitsSection}>
-           <Text style={styles.sectionHeading}>Tecnologia que cria Liberdade</Text>
-           <View style={styles.benefitsGrid}>
-              {[
-                { title: "IA Preditiva", desc: "Antecipa tendências de mercado.", icon: "activity", delay: 200 },
-                { title: "Ativos Globais", desc: "Consolida Crypto e Stocks.", icon: "briefcase", delay: 400 },
-                { title: "Segurança de Elite", desc: "Encriptação ponta-a-ponta.", icon: "lock", delay: 600 }
-              ].map((b, i) => (
-                <View key={i} style={styles.premiumCardWrap}>
-                  <BlurView intensity={15} tint="light" style={styles.premiumCard}>
-                      <View style={styles.cardIconBox}><Feather name={b.icon as any} size={30} color={COLORS.brightMint} /></View>
-                      <Text style={styles.cardTitle}>{b.title}</Text>
-                      <Text style={styles.cardDesc}>{b.desc}</Text>
-                  </BlurView>
-                </View>
-              ))}
-           </View>
+        <View style={styles.textWrapper}>
+           <Animated.Text entering={FadeInUp.delay(200).springify()} style={styles.title}>{stepData.title}</Animated.Text>
+           <Animated.Text entering={FadeInUp.delay(300).springify()} style={styles.desc}>{stepData.desc}</Animated.Text>
         </View>
 
-        {/* FINAL CONVERSION */}
-        <View style={styles.finalSection}>
-            <BlurView intensity={10} tint="light" style={styles.finalBox}>
-              <Text style={styles.finalMainTitle}>Junta-te à elite financeira.</Text>
-              <TouchableOpacity onPress={handleStart} activeOpacity={0.9} style={styles.finalCta}>
-                 <Text style={styles.finalCtaText}>Criar Conta Agora</Text>
-              </TouchableOpacity>
-              <View style={styles.footerBranding}>
-                 <BrandLogo style={styles.footerLogo} />
-                 <Text style={styles.footerLegal}>© 2024 DESIGNED FOR FINANCIAL FREEDOM</Text>
-              </View>
-           </BlurView>
-        </View>
+        <TouchableOpacity onPress={handleNext} style={styles.nextBtnContainer} activeOpacity={0.9}>
+          <LinearGradient colors={[COLORS.neonEmerald, COLORS.brightMint]} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.nextBtn}>
+            <Text style={styles.nextBtnText}>{currentStep === steps.length - 1 ? "Começar" : "Próximo"}</Text>
+            <Feather name={currentStep === steps.length - 1 ? "zap" : "chevron-right"} size={22} color={COLORS.forest} />
+          </LinearGradient>
+        </TouchableOpacity>
       </Animated.ScrollView>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.forest },
+  container: { flex: 1 },
   splashContainer: { flex: 1, backgroundColor: COLORS.forest },
   splashBox: { flex: 1, justifyContent: "center", alignItems: "center" },
   splashText: { color: "#fff", fontSize: 60, fontFamily: "Outfit_900Black", letterSpacing: -2 },
   splashLine: { width: 40, height: 4, backgroundColor: COLORS.neonEmerald, marginTop: 10, borderRadius: 2 },
-  glowOrb: { position: "absolute", width: 400, height: 400, borderRadius: 200, opacity: 0.2 },
-  orb1: { backgroundColor: COLORS.neonEmerald, top: 50, right: -150 },
-  orb2: { backgroundColor: COLORS.deepEmerald, bottom: -100, left: -150 },
-  heroSection: { width: "100%", justifyContent: "center", alignItems: "center", overflow: "hidden" },
-  heroBgImage: { ...StyleSheet.absoluteFillObject, width: "100%", height: "110%" },
-  heroOverlay: { ...StyleSheet.absoluteFillObject },
-  heroContent: { paddingHorizontal: 30, alignItems: "center", zIndex: 10 },
-  badgeWrap: { marginBottom: 35 },
-  glassBadge: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, paddingHorizontal: 24, borderRadius: 40, overflow: "hidden", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.15)" },
-  badgeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.neonEmerald },
-  badgeText: { color: COLORS.white, fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 3 },
-  heroTitle: { color: COLORS.white, fontSize: 52, fontFamily: "Outfit_900Black", textAlign: "center", lineHeight: 62, letterSpacing: -2, marginBottom: 20 },
-  heroSubtitle: { color: COLORS.textMuted, fontSize: 21, fontFamily: "Inter_500Medium", textAlign: "center", lineHeight: 32, paddingHorizontal: 15, marginBottom: 45, opacity: 0.9 },
-  ctaContainer: { shadowColor: COLORS.neonEmerald, shadowOffset: { width: 0, height: 15 }, shadowOpacity: 0.6, shadowRadius: 30, elevation: 10 },
-  ctaButton: { flexDirection: "row", alignItems: "center", gap: 15, paddingVertical: 22, paddingHorizontal: 44, borderRadius: 44 },
-  ctaText: { color: COLORS.forest, fontSize: 21, fontFamily: "Outfit_700Bold" },
-  benefitsSection: { paddingVertical: 120, paddingHorizontal: 24 },
-  sectionHeading: { color: COLORS.white, fontSize: 36, fontFamily: "Outfit_900Black", textAlign: "center", marginBottom: 70 },
-  benefitsGrid: { gap: 30 },
-  premiumCardWrap: { borderRadius: 35, overflow: "hidden", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.08)" },
-  premiumCard: { padding: 35, backgroundColor: "rgba(255, 255, 255, 0.03)" },
-  cardIconBox: { width: 65, height: 65, borderRadius: 22, backgroundColor: "rgba(16, 185, 129, 0.1)", alignItems: "center", justifyContent: "center", marginBottom: 25 },
-  cardTitle: { color: COLORS.white, fontSize: 24, fontFamily: "Outfit_700Bold", marginBottom: 14 },
-  cardDesc: { color: COLORS.textMuted, fontSize: 17, fontFamily: "Inter_400Regular", lineHeight: 26, opacity: 0.8 },
-  finalSection: { paddingBottom: 100, paddingHorizontal: 24 },
-  finalBox: { padding: 60, borderRadius: 45, overflow: "hidden", alignItems: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.08)" },
-  finalMainTitle: { color: COLORS.white, fontSize: 44, fontFamily: "Outfit_900Black", textAlign: "center", marginBottom: 20 },
-  finalCta: { backgroundColor: COLORS.white, paddingVertical: 22, paddingHorizontal: 54, borderRadius: 44 },
-  finalCtaText: { color: COLORS.forest, fontSize: 21, fontFamily: "Outfit_700Bold" },
-  footerBranding: { marginTop: 100, alignItems: "center", gap: 10 },
-  footerLogo: { width: 140, height: 60, opacity: 0.8 },
-  footerLegal: { color: "rgba(255,255,255,0.2)", fontSize: 10, letterSpacing: 2, fontFamily: "Outfit_700Bold" }
+  header: { paddingHorizontal: 30, paddingBottom: 20 },
+  progressBarContainer: { height: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" },
+  progressFillMain: { height: "100%", backgroundColor: COLORS.neonEmerald, borderRadius: 3 },
+  content: { alignItems: "center", paddingHorizontal: 30, paddingTop: 20 },
+  mockupWrapper: { width: SCREEN_WIDTH - 60, height: 320, backgroundColor: "rgba(255,255,255,0.03)", borderRadius: 32, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)", justifyContent: "center", alignItems: "center", padding: 20, marginBottom: 40, overflow: "hidden" },
+  mockContainer: { width: "100%", gap: 12 },
+  mockCard: { padding: 16, borderRadius: 16, gap: 4 },
+  mockCardLabel: { color: "rgba(255,255,255,0.8)", fontSize: 10, fontFamily: "Outfit_700Bold" },
+  mockCardValue: { color: "#fff", fontSize: 24, fontFamily: "Outfit_900Black" },
+  mockRow: { flexDirection: "row", gap: 10 },
+  mockHalfCard: { flex: 1, backgroundColor: "rgba(255,255,255,0.05)", padding: 12, borderRadius: 14 },
+  mockSmallLabel: { color: "rgba(255,255,255,0.5)", fontSize: 9, fontFamily: "Inter_600SemiBold" },
+  mockSmallValue: { color: "#fff", fontSize: 14, fontFamily: "Outfit_700Bold", marginTop: 2 },
+  mockListCard: { backgroundColor: "rgba(255,255,255,0.05)", padding: 16, borderRadius: 16 },
+  mockLargeValue: { color: "#fff", fontSize: 20, fontFamily: "Outfit_700Bold", marginTop: 4, marginBottom: 10 },
+  mockProgressBar: { height: 4, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 2, overflow: "hidden" },
+  mockProgressFill: { height: "100%", backgroundColor: COLORS.neonEmerald },
+  mockTinyText: { color: "rgba(255,255,255,0.4)", fontSize: 9, marginTop: 6 },
+  mockChartBox: { height: 120, justifyContent: "flex-end", marginBottom: 10 },
+  mockBars: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-around", gap: 10 },
+  mockBar: { width: 15, backgroundColor: COLORS.neonEmerald, borderRadius: 4, opacity: 0.8 },
+  mockCategoryRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.05)" },
+  mockIconCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: "#ef4444", justifyContent: "center", alignItems: "center" },
+  mockLineShort: { width: 60, height: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, marginBottom: 4 },
+  mockLineLong: { width: 100, height: 4, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 2 },
+  mockPrice: { color: "#fff", fontSize: 14, fontFamily: "Outfit_700Bold" },
+  mockGoalCard: { backgroundColor: "rgba(255,255,255,0.05)", padding: 16, borderRadius: 16, marginBottom: 8 },
+  mockGoalTitle: { color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" },
+  mockGoalAmounts: { flexDirection: "row", justifyContent: "space-between", marginTop: 8, marginBottom: 8 },
+  mockGoalCurrent: { color: COLORS.neonEmerald, fontSize: 14, fontFamily: "Outfit_700Bold" },
+  mockGoalTarget: { color: "rgba(255,255,255,0.4)", fontSize: 12 },
+  mockGoalBar: { height: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" },
+  mockGoalFill: { height: "100%", backgroundColor: COLORS.neonEmerald },
+  mockAiBubble: { backgroundColor: "rgba(255,255,255,0.1)", padding: 16, borderRadius: 16, borderBottomLeftRadius: 4 },
+  mockAiText: { color: "#fff", fontSize: 13, fontFamily: "Inter_500Medium", lineHeight: 20 },
+  mockAiInput: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(255,255,255,0.05)", padding: 14, borderRadius: 20, marginTop: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  mockAiPlaceholder: { color: "rgba(255,255,255,0.3)", fontSize: 12 },
+  textWrapper: { alignItems: "center", marginBottom: 50 },
+  title: { color: "#fff", fontSize: 32, fontFamily: "Outfit_900Black", textAlign: "center", marginBottom: 15 },
+  desc: { color: COLORS.textMuted, fontSize: 18, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 28, opacity: 0.8 },
+  nextBtnContainer: { width: "100%", shadowColor: COLORS.neonEmerald, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 20 },
+  nextBtn: { height: 64, borderRadius: 24, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12 },
+  nextBtnText: { color: COLORS.forest, fontSize: 20, fontFamily: "Outfit_700Bold" },
 });
