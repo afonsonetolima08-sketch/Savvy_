@@ -16,10 +16,12 @@ import {
 import Animated, {
   FadeInDown,
   FadeInUp,
+  FadeOut,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
+  withSequence,
   useAnimatedScrollHandler,
   interpolate,
   Extrapolate,
@@ -45,37 +47,53 @@ const COLORS = {
   textMuted: "#a7f3d0",
 };
 
-export default function WelcomeScreen() {
+export default function EntryScreen() {
   const insets = useSafeAreaInsets();
   const app = useApp();
   const t = useT();
 
-  const [hasCheckedReturning, setHasCheckedReturning] = useState(false);
+  const [viewMode, setViewMode] = useState<"splash" | "landing">("splash");
+  const [hasSession, setHasSession] = useState(false);
   const scrollY = useSharedValue(0);
 
   // Background Glow Orbs Animations
   const orb1Y = useSharedValue(100);
   const orb2Y = useSharedValue(SCREEN_HEIGHT - 300);
 
+  // Splash Animations
+  const splashOpacity = useSharedValue(1);
+  const splashScale = useSharedValue(1);
+  const splashTextY = useSharedValue(0);
+
   useEffect(() => {
     orb1Y.value = withRepeat(withTiming(300, { duration: 10000 }), -1, true);
     orb2Y.value = withRepeat(withTiming(SCREEN_HEIGHT - 600, { duration: 12000 }), -1, true);
     
-    // Skip introduction for returning users
-    checkReturningUser();
+    // Splash sequence
+    const timer = setTimeout(async () => {
+       await checkRedirection();
+    }, 2500);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  const checkReturningUser = async () => {
+  const checkRedirection = async () => {
     try {
       const isReturning = await AsyncStorage.getItem("savvy_returning_user");
+      
+      // Animate out splash
+      splashOpacity.value = withTiming(0, { duration: 800 });
+      splashScale.value = withTiming(1.1, { duration: 800 });
+
       if (isReturning === "true" && app?.session) {
-        // Auto-start if they are returning and logged in
+        // Direct to main if returning and logged in
         handleStart();
+      } else {
+        // Show landing if new or not logged in
+        setViewMode("landing");
       }
     } catch (e) {
-      console.error(e);
-    } finally {
-      setHasCheckedReturning(true);
+      setViewMode("landing");
     }
   };
 
@@ -109,11 +127,15 @@ export default function WelcomeScreen() {
     transform: [{ translateY: orb2Y.value }],
   }));
 
+  const splashAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: splashOpacity.value,
+    transform: [{ scale: splashScale.value }]
+  }));
+
   if (!app) return null;
   const { session, profile } = app;
 
   const handleStart = async () => {
-    // Set flag for returning user
     try {
       await AsyncStorage.setItem("savvy_returning_user", "true");
     } catch (e) {}
@@ -126,25 +148,33 @@ export default function WelcomeScreen() {
     }
   };
 
-  // If we are auto-redirecting, show a simple loader or nothing to avoid flicker
-  if (!hasCheckedReturning && session) {
-    return <View style={{ flex: 1, backgroundColor: COLORS.forest }} />;
+  if (viewMode === "splash") {
+    return (
+      <View style={styles.splashContainer}>
+        <StatusBar barStyle="light-content" />
+        <Animated.View style={[styles.splashBox, splashAnimatedStyle]}>
+          <LinearGradient colors={[COLORS.forest, COLORS.deepEmerald]} style={StyleSheet.absoluteFill} />
+          <Animated.Text entering={FadeInDown.duration(1000).springify()} style={styles.splashText}>
+            Savvy
+          </Animated.Text>
+          <Animated.View 
+            entering={FadeInUp.delay(500).duration(1000)}
+            style={styles.splashLine}
+          />
+        </Animated.View>
+      </View>
+    );
   }
 
   return (
-    <View style={styles.container}>
+    <Animated.View entering={FadeInDown.duration(800)} style={styles.container}>
       <StatusBar barStyle="light-content" />
       
       {/* CINEMATIC BACKGROUND MESH */}
       <View style={StyleSheet.absoluteFill}>
          <LinearGradient colors={[COLORS.forest, COLORS.deepEmerald]} style={StyleSheet.absoluteFill} />
-         
          <Animated.View style={[styles.glowOrb, styles.orb1, meshOrb1Style]} />
          <Animated.View style={[styles.glowOrb, styles.orb2, meshOrb2Style]} />
-         
-         {Platform.OS !== "web" && (
-           <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
-         )}
       </View>
       
       <Animated.ScrollView 
@@ -152,69 +182,45 @@ export default function WelcomeScreen() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        {/* HERO SECTION WITH PARALLAX */}
+        {/* HERO SECTION */}
         <View style={[styles.heroSection, { height: SCREEN_HEIGHT }]}>
           <Animated.View style={[StyleSheet.absoluteFill, heroImageStyle]}>
-            <Image 
-              source={require("@/assets/images/hero_financial.png")}
-              style={styles.heroBgImage}
-              resizeMode="cover"
-            />
+            <Image source={require("@/assets/images/hero_financial.png")} style={styles.heroBgImage} resizeMode="cover" />
             <LinearGradient colors={["transparent", COLORS.forest]} style={styles.heroOverlay} />
           </Animated.View>
 
           <Animated.View style={[styles.heroContent, heroTextStyle, { paddingTop: insets.top + 80 }]}>
-            <Animated.View entering={FadeInDown.springify().delay(200)} style={styles.badgeWrap}>
+            <View style={styles.badgeWrap}>
               <BlurView intensity={25} tint="light" style={styles.glassBadge}>
-                <View style={styles.badgeDot} />
-                <Text style={styles.badgeText}>SISTEMA DE ELITE SAVVY</Text>
+                <View style={styles.badgeDot} /><Text style={styles.badgeText}>SISTEMA DE ELITE SAVVY</Text>
               </BlurView>
-            </Animated.View>
-
-            <Animated.Text entering={FadeInUp.springify().delay(400)} style={styles.heroTitle}>
-              O Futuro das tuas Finanças começa hoje.
-            </Animated.Text>
-            
-            <Animated.Text entering={FadeInUp.springify().delay(600)} style={styles.heroSubtitle}>
-              Sincroniza o teu património global, automatiza as tuas poupanças e deixa a nossa IA guiar cada cêntimo.
-            </Animated.Text>
-
-            <Animated.View entering={FadeInUp.springify().delay(800)}>
-              <TouchableOpacity onPress={handleStart} activeOpacity={0.9} style={styles.ctaContainer}>
-                <LinearGradient 
-                  colors={[COLORS.neonEmerald, COLORS.brightMint]} 
-                  start={{x: 0, y: 0}} end={{x: 1, y: 1}}
-                  style={styles.ctaButton}
-                >
-                   <Text style={styles.ctaText}>Iniciar Evolução</Text>
-                   <Feather name="zap" size={24} color={COLORS.forest} />
+            </View>
+            <Text style={styles.heroTitle}>O Futuro das tuas Finanças começa hoje.</Text>
+            <Text style={styles.heroSubtitle}>Sincroniza o teu património global, automatiza as tuas poupanças e deixa a nossa IA guiar cada cêntimo.</Text>
+            <TouchableOpacity onPress={handleStart} activeOpacity={0.9} style={styles.ctaContainer}>
+                <LinearGradient colors={[COLORS.neonEmerald, COLORS.brightMint]} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.ctaButton}>
+                   <Text style={styles.ctaText}>Iniciar Evolução</Text><Feather name="zap" size={24} color={COLORS.forest} />
                 </LinearGradient>
-              </TouchableOpacity>
-            </Animated.View>
+            </TouchableOpacity>
           </Animated.View>
-          
-          <View style={styles.scrollTip}>
-             <Text style={styles.scrollTipText}>EXPLORAR</Text>
-             <Feather name="chevron-down" size={20} color="rgba(255,255,255,0.3)" />
-          </View>
         </View>
 
-        {/* FEATURES */}
+        {/* BENEFITS */}
         <View style={styles.benefitsSection}>
            <Text style={styles.sectionHeading}>Tecnologia que cria Liberdade</Text>
            <View style={styles.benefitsGrid}>
               {[
-                { title: "IA Preditiva", desc: "Antecipa tendências de mercado e padrões de gastos.", icon: "activity", delay: 200 },
-                { title: "Ativos Globais", desc: "Consolida Crypto, Stocks e Imobiliário.", icon: "briefcase", delay: 400 },
-                { title: "Segurança de Elite", desc: "Encriptação ponta-a-ponta para os teus dados.", icon: "lock", delay: 600 }
+                { title: "IA Preditiva", desc: "Antecipa tendências de mercado.", icon: "activity", delay: 200 },
+                { title: "Ativos Globais", desc: "Consolida Crypto e Stocks.", icon: "briefcase", delay: 400 },
+                { title: "Segurança de Elite", desc: "Encriptação ponta-a-ponta.", icon: "lock", delay: 600 }
               ].map((b, i) => (
-                <Animated.View key={i} entering={FadeInUp.delay(b.delay).springify()} style={styles.premiumCardWrap}>
+                <View key={i} style={styles.premiumCardWrap}>
                   <BlurView intensity={15} tint="light" style={styles.premiumCard}>
                       <View style={styles.cardIconBox}><Feather name={b.icon as any} size={30} color={COLORS.brightMint} /></View>
                       <Text style={styles.cardTitle}>{b.title}</Text>
                       <Text style={styles.cardDesc}>{b.desc}</Text>
                   </BlurView>
-                </Animated.View>
+                </View>
               ))}
            </View>
         </View>
@@ -223,7 +229,6 @@ export default function WelcomeScreen() {
         <View style={styles.finalSection}>
             <BlurView intensity={10} tint="light" style={styles.finalBox}>
               <Text style={styles.finalMainTitle}>Junta-te à elite financeira.</Text>
-              <Text style={styles.finalSubText}>Centenas de utilizadores já automatizaram o seu futuro.</Text>
               <TouchableOpacity onPress={handleStart} activeOpacity={0.9} style={styles.finalCta}>
                  <Text style={styles.finalCtaText}>Criar Conta Agora</Text>
               </TouchableOpacity>
@@ -234,12 +239,16 @@ export default function WelcomeScreen() {
            </BlurView>
         </View>
       </Animated.ScrollView>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.forest },
+  splashContainer: { flex: 1, backgroundColor: COLORS.forest },
+  splashBox: { flex: 1, justifyContent: "center", alignItems: "center" },
+  splashText: { color: "#fff", fontSize: 60, fontFamily: "Outfit_900Black", letterSpacing: -2 },
+  splashLine: { width: 40, height: 4, backgroundColor: COLORS.neonEmerald, marginTop: 10, borderRadius: 2 },
   glowOrb: { position: "absolute", width: 400, height: 400, borderRadius: 200, opacity: 0.2 },
   orb1: { backgroundColor: COLORS.neonEmerald, top: 50, right: -150 },
   orb2: { backgroundColor: COLORS.deepEmerald, bottom: -100, left: -150 },
@@ -256,8 +265,6 @@ const styles = StyleSheet.create({
   ctaContainer: { shadowColor: COLORS.neonEmerald, shadowOffset: { width: 0, height: 15 }, shadowOpacity: 0.6, shadowRadius: 30, elevation: 10 },
   ctaButton: { flexDirection: "row", alignItems: "center", gap: 15, paddingVertical: 22, paddingHorizontal: 44, borderRadius: 44 },
   ctaText: { color: COLORS.forest, fontSize: 21, fontFamily: "Outfit_700Bold" },
-  scrollTip: { position: "absolute", bottom: 40, alignItems: "center", gap: 8 },
-  scrollTipText: { color: "rgba(255,255,255,0.3)", fontSize: 12, letterSpacing: 4, fontFamily: "Outfit_700Bold" },
   benefitsSection: { paddingVertical: 120, paddingHorizontal: 24 },
   sectionHeading: { color: COLORS.white, fontSize: 36, fontFamily: "Outfit_900Black", textAlign: "center", marginBottom: 70 },
   benefitsGrid: { gap: 30 },
@@ -269,7 +276,6 @@ const styles = StyleSheet.create({
   finalSection: { paddingBottom: 100, paddingHorizontal: 24 },
   finalBox: { padding: 60, borderRadius: 45, overflow: "hidden", alignItems: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.08)" },
   finalMainTitle: { color: COLORS.white, fontSize: 44, fontFamily: "Outfit_900Black", textAlign: "center", marginBottom: 20 },
-  finalSubText: { color: COLORS.textMuted, fontSize: 19, fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 50 },
   finalCta: { backgroundColor: COLORS.white, paddingVertical: 22, paddingHorizontal: 54, borderRadius: 44 },
   finalCtaText: { color: COLORS.forest, fontSize: 21, fontFamily: "Outfit_700Bold" },
   footerBranding: { marginTop: 100, alignItems: "center", gap: 10 },
