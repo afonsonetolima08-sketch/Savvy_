@@ -68,6 +68,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="goals"
+        options={{
+          title: t.tabGoals,
+          tabBarIcon: ({ color }) => <Feather name="target" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="ai"
         options={{
           title: t.tabAI,
