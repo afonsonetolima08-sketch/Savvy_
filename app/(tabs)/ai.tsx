@@ -208,12 +208,13 @@ export default function AIScreen() {
         />
       </View>
 
-      {/* INPUT AREA (Fixed height and accounted for tab bar) */}
+      {/* INPUT AREA (Pushed up to clear the tab bar) */}
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+        style={styles.bottomArea}
       >
-        <View style={[styles.bottomContainer, { paddingBottom: 20 }]}>
+        <View style={[styles.bottomContainer, { backgroundColor: colors.background }]}>
           <View style={[styles.inputBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <TextInput
               style={[styles.textInput, { color: colors.foreground }]}
@@ -307,7 +308,8 @@ const styles = StyleSheet.create({
   thinkingBubble: { padding: 15, borderRadius: 20, width: 80, alignItems: "center", borderWidth: 1 },
   typingContainer: { flexDirection: "row", gap: 6 },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  bottomContainer: { width: "100%", paddingHorizontal: 16, paddingTop: 10, backgroundColor: 'transparent' },
+  bottomArea: { marginBottom: 80 }, // Account for the tab bar height
+  bottomContainer: { width: "100%", paddingHorizontal: 16, paddingTop: 10 },
   inputBar: { flexDirection: "row", alignItems: "center", padding: 6, paddingLeft: 20, borderRadius: 32, borderWidth: 1, minHeight: 52 },
   textInput: { flex: 1, fontSize: 16, fontFamily: "Inter_400Regular", maxHeight: 120, paddingVertical: 10 },
   sendButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", marginLeft: 8 },
