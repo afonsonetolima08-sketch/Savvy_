@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -269,6 +270,45 @@ export default function SettingsScreen() {
     );
   }
 
+  function ToggleRow({
+    icon,
+    label,
+    value,
+    onValueChange,
+    iconBg,
+    iconColor,
+    last = false,
+  }: {
+    icon: string;
+    label: string;
+    value: boolean;
+    onValueChange: (v: boolean) => void;
+    iconBg?: string;
+    iconColor?: string;
+    last?: boolean;
+  }) {
+    return (
+      <>
+        <View style={styles.row}>
+          <View style={[styles.rowIcon, { backgroundColor: iconBg ?? colors.primary + "15" }]}>
+            <Feather name={icon as any} size={16} color={iconColor ?? colors.primary} />
+          </View>
+          <View style={styles.rowText}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>{label}</Text>
+          </View>
+          <Switch
+            value={value}
+            onValueChange={onValueChange}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={Platform.OS === "ios" ? undefined : value ? "#fff" : "#f4f3f4"}
+            ios_backgroundColor={colors.border}
+          />
+        </View>
+        {!last && <View style={[styles.divider, { backgroundColor: colors.border, marginLeft: 62 }]} />}
+      </>
+    );
+  }
+
   function DangerRow({
     icon,
     label,
@@ -446,6 +486,17 @@ export default function SettingsScreen() {
               label={t.languageLabel}
               value={currentLangLabel}
               onPress={() => setActiveModal("language")}
+              iconBg={colors.accent + "15"}
+              iconColor={colors.accent}
+            />
+            <ToggleRow
+              icon="bell"
+              label={t.notificationsLabel}
+              value={profile.notificationsEnabled}
+              onValueChange={(v) => {
+                Haptics.selectionAsync();
+                updateProfile({ notificationsEnabled: v });
+              }}
               iconBg={colors.accent + "15"}
               iconColor={colors.accent}
               last

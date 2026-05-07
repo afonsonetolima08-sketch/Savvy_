@@ -115,6 +115,7 @@ const translations = {
     sectionPreferences: "PREFERÊNCIAS",
     currencyLabel: "Moeda",
     languageLabel: "Idioma",
+    notificationsLabel: "Notificações Diárias",
     sectionAbout: "SOBRE",
     versionLabel: "Versão",
     chooseCurrency: "Escolher Moeda",
@@ -286,7 +287,7 @@ const translations = {
     deleteTransactionTitle: "Delete", deleteConfirm: "Are you sure?", cancel: "Cancel", delete: "Delete",
     // Settings
     settingsTitle: "Settings", sectionProfile: "PROFILE", nameLabel: "Name", monthlyIncomeLabel: "Income", initialPatrimonyLabel: "Assets",
-    mainObjectiveSettingsLabel: "Objective", sectionPreferences: "PREFERENCES", currencyLabel: "Currency", languageLabel: "Language", sectionAbout: "ABOUT", versionLabel: "Version",
+    mainObjectiveSettingsLabel: "Objective", sectionPreferences: "PREFERENCES", currencyLabel: "Currency", languageLabel: "Language", notificationsLabel: "Daily Reminders", sectionAbout: "ABOUT", versionLabel: "Version",
     chooseCurrency: "Choose", chooseLanguage: "Choose", chooseObjective: "Objective", notDefined: "Not defined",
     // Account
     sectionAccount: "ACCOUNT", accountEmail: "Email", accountEmailDesc: "Change email", accountPassword: "Password", accountPasswordDesc: "Change",
@@ -373,7 +374,7 @@ const translations = {
     deleteTransactionTitle: "Eliminar", deleteConfirm: "¿Seguro?", cancel: "Cancelar", delete: "Eliminar",
     // Settings
     settingsTitle: "Ajustes", sectionProfile: "PERFIL", nameLabel: "Nombre", monthlyIncomeLabel: "Ingreso", initialPatrimonyLabel: "Patrimonio",
-    mainObjectiveSettingsLabel: "Objetivo", sectionPreferences: "PREFERENCIAS", currencyLabel: "Moneda", languageLabel: "Idioma", sectionAbout: "SOBRE", versionLabel: "Versión",
+    mainObjectiveSettingsLabel: "Objetivo", sectionPreferences: "PREFERENCIAS", currencyLabel: "Moneda", languageLabel: "Idioma", notificationsLabel: "Notificaciones Diarias", sectionAbout: "SOBRE", versionLabel: "Versión",
     chooseCurrency: "Elegir", chooseLanguage: "Elegir", chooseObjective: "Objetivo", notDefined: "No definido",
     // Account
     sectionAccount: "CUENTA", accountEmail: "Email", accountEmailDesc: "Cambiar", accountPassword: "Contraseña", accountPasswordDesc: "Cambiar",
@@ -456,7 +457,7 @@ const translations = {
     deleteTransactionTitle: "Supprimer", deleteConfirm: "Sûr?", cancel: "Annuler", delete: "Supprimer",
     // Settings
     settingsTitle: "Paramètres", sectionProfile: "PROFIL", nameLabel: "Nom", monthlyIncomeLabel: "Revenu", initialPatrimonyLabel: "Patrimoine",
-    mainObjectiveSettingsLabel: "Objectif", sectionPreferences: "PRÉFÉRENCES", currencyLabel: "Devise", languageLabel: "Langue", sectionAbout: "À PROPOS", versionLabel: "Version",
+    mainObjectiveSettingsLabel: "Objectif", sectionPreferences: "PRÉFÉRENCES", currencyLabel: "Devise", languageLabel: "Langue", notificationsLabel: "Notifications Quotidiennes", sectionAbout: "À PROPOS", versionLabel: "Version",
     chooseCurrency: "Choisir", chooseLanguage: "Choisir", chooseObjective: "Objectif", notDefined: "Non défini",
     // Account
     sectionAccount: "COMPTE", accountEmail: "Email", accountEmailDesc: "Changer", accountPassword: "Mot de passe", accountPasswordDesc: "Changer",

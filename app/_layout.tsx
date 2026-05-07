@@ -28,6 +28,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { Analytics } from "@vercel/analytics/react";
+import { registerForPushNotificationsAsync, scheduleDailyReminder } from "@/utils/notifications";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -60,6 +61,19 @@ function RootLayoutNav() {
       }
     }
   }, [isLoading, session, profile.onboardingCompleted, segments]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' && !isLoading && profile.notificationsEnabled) {
+      registerForPushNotificationsAsync().then(() => {
+        scheduleDailyReminder();
+      });
+    } else if (Platform.OS !== 'web' && !isLoading && !profile.notificationsEnabled) {
+      // If user disabled notifications, cancel any scheduled ones
+      import('expo-notifications').then(Notifications => {
+        Notifications.cancelAllScheduledNotificationsAsync();
+      });
+    }
+  }, [isLoading, profile.notificationsEnabled]);
 
   if (isLoading) return null;
 

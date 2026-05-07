@@ -41,6 +41,7 @@ export interface UserProfile {
   investmentHorizon: string;
   currency: string;
   language: string;
+  notificationsEnabled: boolean;
   onboardingCompleted: boolean;
 }
 
@@ -56,6 +57,7 @@ const DEFAULT_PROFILE: UserProfile = {
   investmentHorizon: "",
   currency: "EUR",
   language: "pt",
+  notificationsEnabled: true,
   onboardingCompleted: false,
 };
 
@@ -144,6 +146,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           investmentHorizon: p.investment_horizon || "",
           currency: p.currency || "EUR",
           language: p.language || "pt",
+          notificationsEnabled: p.notifications_enabled ?? true,
           onboardingCompleted: p.onboarding_completed || false,
         });
       }
@@ -277,6 +280,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         investment_horizon: p.investmentHorizon,
         currency: p.currency,
         language: p.language,
+        notifications_enabled: p.notificationsEnabled,
         onboarding_completed: p.onboardingCompleted,
         updated_at: new Date().toISOString(),
       });
