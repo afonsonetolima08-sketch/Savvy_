@@ -32,6 +32,7 @@ export default function GoalsScreen() {
   const { effectivePatrimony, goals, addGoal, updateGoal, deleteGoal } = useApp();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [isAllocating, setIsAllocating] = useState<string | null>(null);
   const [newGoal, setNewGoal] = useState({ title: "", target: "", current: "" });
   const [allocAmount, setAllocAmount] = useState("");
@@ -49,14 +50,23 @@ export default function GoalsScreen() {
       return;
     }
 
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    addGoal({
-      title: newGoal.title,
-      targetAmount: target,
-      currentAmount: current,
-    });
+    if (editingGoal) {
+      updateGoal({
+        ...editingGoal,
+        title: newGoal.title,
+        targetAmount: target,
+        currentAmount: current,
+      });
+    } else {
+      addGoal({
+        title: newGoal.title,
+        targetAmount: target,
+        currentAmount: current,
+      });
+    }
 
     setIsModalVisible(false);
+    setEditingGoal(null);
     setNewGoal({ title: "", target: "", current: "" });
   };
 
@@ -100,9 +110,25 @@ export default function GoalsScreen() {
               {new Date(item.createdAt).toLocaleDateString()}
             </Text>
           </View>
-          <TouchableOpacity onPress={() => handleDeleteGoal(item.id)} style={styles.deleteBtn}>
-            <Feather name="trash-2" size={16} color={colors.destructive} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              onPress={() => {
+                setEditingGoal(item);
+                setNewGoal({ 
+                  title: item.title, 
+                  target: item.targetAmount.toString(), 
+                  current: item.currentAmount.toString() 
+                });
+                setIsModalVisible(true);
+              }} 
+              style={styles.actionBtn}
+            >
+              <Feather name="edit-2" size={16} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleDeleteGoal(item.id)} style={styles.actionBtn}>
+              <Feather name="trash-2" size={16} color={colors.destructive} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.amountRow}>
@@ -187,11 +213,21 @@ export default function GoalsScreen() {
       <Modal visible={isModalVisible} animationType="slide" transparent={true}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
           <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
-          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setIsModalVisible(false)} />
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => {
+            setIsModalVisible(false);
+            setEditingGoal(null);
+            setNewGoal({ title: "", target: "", current: "" });
+          }} />
           <Animated.View entering={FadeInDown} style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>{t.addGoal}</Text>
-              <TouchableOpacity onPress={() => setIsModalVisible(false)}><Feather name="x" size={24} color={colors.mutedForeground} /></TouchableOpacity>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                {editingGoal ? "Editar Objetivo" : t.addGoal}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                setIsModalVisible(false);
+                setEditingGoal(null);
+                setNewGoal({ title: "", target: "", current: "" });
+              }}><Feather name="x" size={24} color={colors.mutedForeground} /></TouchableOpacity>
             </View>
             <View style={styles.form}>
               <View style={styles.inputGroup}>
@@ -261,7 +297,8 @@ const styles = StyleSheet.create({
   goalTitleContainer: { flex: 1 },
   goalTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
   goalDate: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  deleteBtn: { padding: 5 },
+  headerActions: { flexDirection: "row", gap: 12 },
+  actionBtn: { padding: 5 },
   amountRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20 },
   amountLabel: { fontSize: 12, fontFamily: "Inter_500Medium", marginBottom: 4 },
   amountValue: { fontSize: 18, fontFamily: "Outfit_700Bold" },

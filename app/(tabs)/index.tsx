@@ -27,7 +27,10 @@ export default function DashboardScreen() {
   const { format, formatExact, convert } = useCurrency();
   const t = useT();
   const [showModal, setShowModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
+  const [tempName, setTempName] = useState(profile.name);
+  const [tempObjective, setTempObjective] = useState(profile.mainObjective);
 
   const safeTransactions = transactions || [];
   
@@ -88,7 +91,15 @@ export default function DashboardScreen() {
         {/* Header / Greeting */}
         <View style={styles.headerSection}>
           <View style={styles.greetingRow}>
-            <View style={styles.greetingText}>
+            <TouchableOpacity 
+              style={styles.greetingText} 
+              onPress={() => {
+                setTempName(profile.name);
+                setTempObjective(profile.mainObjective);
+                setShowProfileModal(true);
+              }}
+              activeOpacity={0.7}
+            >
               {firstName ? (
                 <>
                   <Text style={[styles.greetingBase, { color: colors.mutedForeground }]}>
@@ -101,8 +112,10 @@ export default function DashboardScreen() {
               ) : (
                 <Text style={[styles.greeting, { color: colors.foreground }]}>{greetingBase}</Text>
               )}
-              <Text style={[styles.greetingSub, { color: colors.mutedForeground }]}>{t.greetingSub}</Text>
-            </View>
+              <Text style={[styles.greetingSub, { color: colors.mutedForeground }]}>
+                {profile.mainObjective ? t[`obj${profile.mainObjective.charAt(0).toUpperCase()}${profile.mainObjective.slice(1)}` as keyof typeof t] || profile.mainObjective : t.greetingSub}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.addIconBtn, { backgroundColor: colors.primary }]}
               onPress={() => {
@@ -284,6 +297,59 @@ export default function DashboardScreen() {
         }}
         editTransaction={editTx}
       />
+
+      <Modal visible={showProfileModal} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowProfileModal(false)} />
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground, marginBottom: 20 }]}>Editar Perfil</Text>
+            
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>NOME</Text>
+              <TextInput 
+                style={[styles.input, { color: colors.foreground, borderColor: colors.border }]} 
+                value={tempName} 
+                onChangeText={setTempName} 
+                placeholder="O teu nome"
+              />
+            </View>
+
+            <View style={[styles.inputGroup, { marginTop: 20 }]}>
+              <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>OBJETIVO PRINCIPAL</Text>
+              <View style={styles.objOptions}>
+                {["save", "reduce_debt", "invest", "control", "freedom"].map((obj) => (
+                  <TouchableOpacity 
+                    key={obj}
+                    style={[
+                      styles.objBadge, 
+                      { 
+                        backgroundColor: tempObjective === obj ? colors.primary : colors.border,
+                        borderColor: tempObjective === obj ? colors.primary : colors.border
+                      }
+                    ]}
+                    onPress={() => setTempObjective(obj)}
+                  >
+                    <Text style={[styles.objBadgeText, { color: tempObjective === obj ? "#fff" : colors.mutedForeground }]}>
+                      {t[`obj${obj.charAt(0).toUpperCase()}${obj.slice(1)}` as keyof typeof t] || obj}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.saveBtn, { backgroundColor: colors.primary, marginTop: 30 }]} 
+              onPress={() => {
+                updateProfile({ name: tempName, mainObjective: tempObjective });
+                setShowProfileModal(false);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }}
+            >
+              <Text style={styles.saveBtnText}>Guardar Alterações</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -550,5 +616,61 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     textAlign: "center",
     lineHeight: 19,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: "Outfit_700Bold",
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 16,
+    fontFamily: "Inter_400Regular",
+  },
+  objOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 4,
+  },
+  objBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  objBadgeText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  saveBtn: {
+    borderRadius: 16,
+    padding: 18,
+    alignItems: "center",
+  },
+  saveBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
   },
 });
