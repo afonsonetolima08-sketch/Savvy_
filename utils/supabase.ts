@@ -21,16 +21,27 @@ const noopStorage = {
 };
 
 // SSR-safe storage wrapper
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: isServer ? noopStorage : require("@react-native-async-storage/async-storage").default,
-    autoRefreshToken: !isServer,
-    persistSession: !isServer,
-    detectSessionInUrl: false,
-  },
-});
+// Guard createClient to prevent build-time crashes when environment variables are missing
+export const supabase = (supabaseUrl && supabaseAnonKey) 
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        storage: isServer ? noopStorage : require("@react-native-async-storage/async-storage").default,
+        autoRefreshToken: !isServer,
+        persistSession: !isServer,
+        detectSessionInUrl: false,
+      },
+    })
+  : ({
+      auth: {
+        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+        startAutoRefresh: () => {},
+        stopAutoRefresh: () => {},
+      },
+      from: () => ({ select: () => ({ order: () => ({ limit: () => Promise.resolve({ data: [], error: null }) }) }) }),
+    } as any);
 
-if (!isServer) {
+if (!isServer && supabase.auth && typeof supabase.auth.startAutoRefresh === 'function') {
   AppState.addEventListener("change", (state) => {
     if (state === "active") {
       supabase.auth.startAutoRefresh();
