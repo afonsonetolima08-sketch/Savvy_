@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/utils/supabase";
 import { Session } from "@supabase/supabase-js";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type TransactionCategory =
   | "salary"
@@ -137,9 +138,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadCloudData = async (userId: string) => {
     setIsLoading(true);
     try {
-      const [txsRes, goalsRes, profileRes] = await Promise.all([
+      const [txsRes, profileRes] = await Promise.all([
         supabase.from("transactions").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
-        supabase.from("goals").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         supabase.from("profiles").select("*").eq("id", userId).single(),
       ]);
 
@@ -147,14 +147,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setTransactions(txsRes.data as Transaction[]);
       }
 
-      if (goalsRes.data) {
-        setGoals(goalsRes.data.map((g: any) => ({
-          id: g.id,
-          title: g.title,
-          targetAmount: g.target_amount,
-          currentAmount: g.current_amount,
-          createdAt: g.created_at
-        })) as Goal[]);
+      // Load goals from local storage as requested
+      const savedGoals = await AsyncStorage.getItem("savvy_goals");
+      if (savedGoals) {
+        setGoals(JSON.parse(savedGoals));
       }
 
       if (profileRes.data) {
@@ -287,67 +283,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [session]);
 
   const addGoal = useCallback(async (g: Omit<Goal, "id" | "createdAt">) => {
-    if (!session) return;
-    const tempId = `temp_${Date.now()}`;
-    const optimisticGoal: Goal = { ...g, id: tempId, createdAt: new Date().toISOString() };
-    setGoals(prev => [optimisticGoal, ...prev]);
-
+    const newGoal: Goal = { 
+      ...g, 
+      id: `goal_${Date.now()}`, 
+      createdAt: new Date().toISOString() 
+    };
+    const updated = [newGoal, ...goals];
+    setGoals(updated);
     try {
-      const { data, error } = await supabase.from("goals").insert([{
-        user_id: session.user.id,
-        title: g.title,
-        target_amount: g.targetAmount,
-        current_amount: g.currentAmount
-      }]).select().single();
-
-      if (!error && data) {
-        setGoals(prev => prev.map(item => item.id === tempId ? {
-          id: data.id,
-          title: data.title,
-          targetAmount: data.target_amount,
-          currentAmount: data.current_amount,
-          createdAt: data.created_at
-        } : item));
-      } else {
-        console.error("addGoal error:", error);
-        // If it's a "table not found" error, we keep it locally but log the warning
-        if (error?.code === 'PGRST116' || error?.message?.includes('relation "goals" does not exist')) {
-          console.warn("Table 'goals' not found in Supabase. Goal is local-only.");
-        } else {
-          setGoals(prev => prev.filter(item => item.id !== tempId));
-        }
-      }
+      await AsyncStorage.setItem("savvy_goals", JSON.stringify(updated));
     } catch (e) {
-      console.error("addGoal exception:", e);
-      setGoals(prev => prev.filter(item => item.id !== tempId));
+      console.error("Save goals error:", e);
     }
-  }, [session]);
+  }, [goals]);
 
   const updateGoal = useCallback(async (g: Goal) => {
-    if (!session) return;
-    setGoals(prev => prev.map(item => item.id === g.id ? g : item));
-
+    const updated = goals.map(item => item.id === g.id ? g : item);
+    setGoals(updated);
     try {
-      await supabase.from("goals").update({
-        title: g.title,
-        target_amount: g.targetAmount,
-        current_amount: g.currentAmount
-      }).eq("id", g.id);
+      await AsyncStorage.setItem("savvy_goals", JSON.stringify(updated));
     } catch (e) {
-      console.error(e);
+      console.error("Save goals error:", e);
     }
-  }, [session]);
+  }, [goals]);
 
   const deleteGoal = useCallback(async (id: string) => {
-    if (!session) return;
-    setGoals(prev => prev.filter(item => item.id !== id));
-
+    const updated = goals.filter(item => item.id !== id);
+    setGoals(updated);
     try {
-      await supabase.from("goals").delete().eq("id", id);
+      await AsyncStorage.setItem("savvy_goals", JSON.stringify(updated));
     } catch (e) {
-      console.error(e);
+      console.error("Save goals error:", e);
     }
-  }, [session]);
+  }, [goals]);
 
   const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
     if (!session) return;
