@@ -1,17 +1,34 @@
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 
+// Dynamically import notifications to avoid errors during static export/SSR
+const getNotifications = () => {
+  if (Platform.OS === 'web') return null;
+  return require('expo-notifications');
+};
+
+const getDevice = () => {
+  if (Platform.OS === 'web') return null;
+  return require('expo-device');
+};
+
 // Configure how notifications are handled when the app is foregrounded
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+const Notifications = getNotifications();
+if (Notifications) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 export async function registerForPushNotificationsAsync() {
+  const Notifications = getNotifications();
+  const Device = getDevice();
+  
+  if (!Notifications || !Device) return;
+
   let token;
 
   if (Platform.OS === 'android') {
@@ -34,20 +51,20 @@ export async function registerForPushNotificationsAsync() {
       console.log('Failed to get push token for push notification!');
       return;
     }
-    // We don't necessarily need the token for local notifications, but it's good to have the setup
     try {
       token = (await Notifications.getExpoPushTokenAsync()).data;
     } catch (e) {
       console.log('Error getting expo push token', e);
     }
-  } else {
-    console.log('Must use physical device for Push Notifications');
   }
 
   return token;
 }
 
 export async function scheduleDailyReminder() {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+
   // First, cancel any existing scheduled notifications to avoid duplicates
   await Notifications.cancelAllScheduledNotificationsAsync();
 
@@ -67,7 +84,7 @@ export async function scheduleDailyReminder() {
       minute: 0,
       repeats: true,
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-    } as any, // Cast to any because of some type issues with Expo DAILY trigger in some versions
+    } as any,
   });
 
   console.log("Daily reminder scheduled for 9:00 AM");
