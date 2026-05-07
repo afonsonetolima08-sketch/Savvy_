@@ -45,6 +45,14 @@ export interface UserProfile {
   onboardingCompleted: boolean;
 }
 
+export interface Goal {
+  id: string;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  createdAt: string;
+}
+
 const DEFAULT_PROFILE: UserProfile = {
   name: "",
   financialGoal: "",
@@ -68,12 +76,16 @@ export interface ExchangeRates {
 interface AppContextValue {
   session: Session | null;
   transactions: Transaction[];
+  goals: Goal[];
   profile: UserProfile;
   effectivePatrimony: number;
   exchangeRates: ExchangeRates;
   addTransaction: (t: Omit<Transaction, "id">) => void;
   updateTransaction: (t: Transaction) => void;
   deleteTransaction: (id: string) => void;
+  addGoal: (g: Omit<Goal, "id" | "createdAt">) => void;
+  updateGoal: (g: Goal) => void;
+  deleteGoal: (id: string) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
   convertAmount: (amount: number, toCurrency: string) => number;
   isLoading: boolean;
@@ -96,6 +108,7 @@ const HARDCODED_RATES: ExchangeRates = {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [exchangeRates] = useState<ExchangeRates>(HARDCODED_RATES);
   const [isLoading, setIsLoading] = useState(true);
@@ -112,6 +125,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (session) loadCloudData(session.user.id);
       else {
         setTransactions([]);
+        setGoals([]);
         setProfile(DEFAULT_PROFILE);
         setIsLoading(false);
       }
@@ -123,13 +137,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadCloudData = async (userId: string) => {
     setIsLoading(true);
     try {
-      const [txsRes, profileRes] = await Promise.all([
+      const [txsRes, goalsRes, profileRes] = await Promise.all([
         supabase.from("transactions").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+        supabase.from("goals").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         supabase.from("profiles").select("*").eq("id", userId).single(),
       ]);
 
       if (txsRes.data) {
         setTransactions(txsRes.data as Transaction[]);
+      }
+
+      if (goalsRes.data) {
+        setGoals(goalsRes.data.map((g: any) => ({
+          id: g.id,
+          title: g.title,
+          targetAmount: g.target_amount,
+          currentAmount: g.current_amount,
+          createdAt: g.created_at
+        })) as Goal[]);
       }
 
       if (profileRes.data) {
@@ -261,6 +286,62 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session]);
 
+  const addGoal = useCallback(async (g: Omit<Goal, "id" | "createdAt">) => {
+    if (!session) return;
+    const tempId = `temp_${Date.now()}`;
+    const optimisticGoal: Goal = { ...g, id: tempId, createdAt: new Date().toISOString() };
+    setGoals(prev => [optimisticGoal, ...prev]);
+
+    try {
+      const { data, error } = await supabase.from("goals").insert([{
+        user_id: session.user.id,
+        title: g.title,
+        target_amount: g.targetAmount,
+        current_amount: g.currentAmount
+      }]).select().single();
+
+      if (!error && data) {
+        setGoals(prev => prev.map(item => item.id === tempId ? {
+          id: data.id,
+          title: data.title,
+          targetAmount: data.target_amount,
+          currentAmount: data.current_amount,
+          createdAt: data.created_at
+        } : item));
+      } else {
+        setGoals(prev => prev.filter(item => item.id !== tempId));
+      }
+    } catch (e) {
+      setGoals(prev => prev.filter(item => item.id !== tempId));
+    }
+  }, [session]);
+
+  const updateGoal = useCallback(async (g: Goal) => {
+    if (!session) return;
+    setGoals(prev => prev.map(item => item.id === g.id ? g : item));
+
+    try {
+      await supabase.from("goals").update({
+        title: g.title,
+        target_amount: g.targetAmount,
+        current_amount: g.currentAmount
+      }).eq("id", g.id);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [session]);
+
+  const deleteGoal = useCallback(async (id: string) => {
+    if (!session) return;
+    setGoals(prev => prev.filter(item => item.id !== id));
+
+    try {
+      await supabase.from("goals").delete().eq("id", id);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [session]);
+
   const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
     if (!session) return;
     const p = { ...profile, ...updates };
@@ -322,12 +403,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         session,
         transactions,
+        goals,
         profile,
         effectivePatrimony,
         exchangeRates,
         addTransaction,
         updateTransaction,
         deleteTransaction,
+        addGoal,
+        updateGoal,
+        deleteGoal,
         updateProfile,
         convertAmount,
         isLoading,

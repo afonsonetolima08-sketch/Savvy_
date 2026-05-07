@@ -1,9 +1,8 @@
 import { Feather } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   FlatList,
   Modal,
@@ -12,7 +11,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   Alert,
@@ -20,30 +18,19 @@ import {
 import Animated, { FadeInDown, FadeInRight, Layout } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useApp } from "@/context/AppContext";
+import { useApp, Goal } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useT } from "@/hooks/useTranslations";
 import { formatCurrency } from "@/utils/finance";
-
-const { width } = Dimensions.get("window");
-
-interface Goal {
-  id: string;
-  title: string;
-  targetAmount: number;
-  currentAmount: number;
-  createdAt: string;
-}
 
 export default function GoalsScreen() {
   const colors = useColors();
   const t = useT();
   const insets = useSafeAreaInsets();
   const { currency, convert } = useCurrency();
-  const { effectivePatrimony } = useApp();
+  const { effectivePatrimony, goals, addGoal, updateGoal, deleteGoal } = useApp();
 
-  const [goals, setGoals] = useState<Goal[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAllocating, setIsAllocating] = useState<string | null>(null);
   const [newGoal, setNewGoal] = useState({ title: "", target: "", current: "" });
@@ -51,27 +38,6 @@ export default function GoalsScreen() {
 
   const totalAllocated = useMemo(() => goals.reduce((s, g) => s + g.currentAmount, 0), [goals]);
   const availableToAllocate = useMemo(() => convert(effectivePatrimony) - totalAllocated, [effectivePatrimony, totalAllocated, convert]);
-
-  useEffect(() => {
-    loadGoals();
-  }, []);
-
-  const loadGoals = async () => {
-    try {
-      const saved = await AsyncStorage.getItem("savvy_goals");
-      if (saved) setGoals(JSON.parse(saved));
-    } catch (e) {
-      console.error("Load goals error:", e);
-    }
-  };
-
-  const saveGoals = async (updatedGoals: Goal[]) => {
-    try {
-      await AsyncStorage.setItem("savvy_goals", JSON.stringify(updatedGoals));
-    } catch (e) {
-      console.error("Save goals error:", e);
-    }
-  };
 
   const handleAddGoal = () => {
     const target = parseFloat(newGoal.target);
@@ -84,17 +50,12 @@ export default function GoalsScreen() {
     }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const goal: Goal = {
-      id: Date.now().toString(),
+    addGoal({
       title: newGoal.title,
       targetAmount: target,
       currentAmount: current,
-      createdAt: new Date().toISOString(),
-    };
+    });
 
-    const updated = [goal, ...goals];
-    setGoals(updated);
-    saveGoals(updated);
     setIsModalVisible(false);
     setNewGoal({ title: "", target: "", current: "" });
   };
@@ -108,30 +69,23 @@ export default function GoalsScreen() {
       return;
     }
 
-    const updated = goals.map(g => {
-      if (g.id === isAllocating) {
-        return { ...g, currentAmount: g.currentAmount + amount };
-      }
-      return g;
-    });
+    const goal = goals.find(g => g.id === isAllocating);
+    if (goal) {
+      updateGoal({ ...goal, currentAmount: goal.currentAmount + amount });
+    }
 
-    setGoals(updated);
-    saveGoals(updated);
     setIsAllocating(null);
     setAllocAmount("");
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  const deleteGoal = (id: string) => {
+  const handleDeleteGoal = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const updated = goals.filter(g => g.id !== id);
-    setGoals(updated);
-    saveGoals(updated);
+    deleteGoal(id);
   };
 
   const renderGoal = ({ item, index }: { item: Goal, index: number }) => {
     const progress = Math.min((item.currentAmount / item.targetAmount) * 100, 100);
-    const remaining = Math.max(item.targetAmount - item.currentAmount, 0);
 
     return (
       <Animated.View 
@@ -146,7 +100,7 @@ export default function GoalsScreen() {
               {new Date(item.createdAt).toLocaleDateString()}
             </Text>
           </View>
-          <TouchableOpacity onPress={() => deleteGoal(item.id)} style={styles.deleteBtn}>
+          <TouchableOpacity onPress={() => handleDeleteGoal(item.id)} style={styles.deleteBtn}>
             <Feather name="trash-2" size={16} color={colors.destructive} />
           </TouchableOpacity>
         </View>
@@ -230,7 +184,6 @@ export default function GoalsScreen() {
         }
       />
 
-      {/* MODAL: ADD GOAL */}
       <Modal visible={isModalVisible} animationType="slide" transparent={true}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
           <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
@@ -261,7 +214,6 @@ export default function GoalsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* MODAL: ALLOCATE FUNDS */}
       <Modal visible={!!isAllocating} animationType="fade" transparent={true}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlayCenter}>
           <BlurView intensity={50} style={StyleSheet.absoluteFill} tint="dark" />

@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Platform,
@@ -16,20 +17,18 @@ import { Transaction, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useT } from "@/hooks/useTranslations";
-import { getGreetingT } from "@/utils/i18n";
 
 const NEGATIVE_CARD_COLOR = "#dc2626";
 
 export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { transactions, profile, effectivePatrimony } = useApp();
+  const { transactions, profile, effectivePatrimony, goals } = useApp();
   const { format, formatExact, convert } = useCurrency();
   const t = useT();
   const [showModal, setShowModal] = useState(false);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
 
-  // Inline calculation to fully avoid Metro cache issues on utility files
   const safeTransactions = transactions || [];
   
   const currentMonthTxs = safeTransactions.filter((tx) => {
@@ -38,7 +37,6 @@ export default function DashboardScreen() {
     const tY = target.getFullYear();
     const tM = target.getMonth() + 1;
     
-    // Strict match to avoid ANY timezone shifting
     const match = tx.date.match(/^(\d{4})[/-](\d{1,2})/);
     if (match) {
       return parseInt(match[1], 10) === tY && parseInt(match[2], 10) === tM;
@@ -64,7 +62,6 @@ export default function DashboardScreen() {
   const isNegative = stats.balance < 0;
   const cardColor = isNegative ? NEGATIVE_CARD_COLOR : colors.primary;
 
-  // Split greeting into base + name so we can style each differently
   const firstName = profile.name?.trim().split(" ")[0] || "";
   const hour = new Date().getHours();
   const greetingBase = hour < 12 ? t.morning : hour < 19 ? t.afternoon : t.evening;
@@ -72,7 +69,6 @@ export default function DashboardScreen() {
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
 
-  // effectivePatrimony and monthlyIncome are stored in EUR → convert for display
   const displayIncome = convert(profile.monthlyIncome);
   const displayPatrimony = convert(effectivePatrimony);
   const displayInitial = convert(profile.initialPatrimony ?? 0);
@@ -209,6 +205,46 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             </>
+          )}
+        </View>
+
+        {/* Goals Summary Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t.tabGoals}</Text>
+            <TouchableOpacity onPress={() => router.push("/(tabs)/goals")}>
+              <Text style={[styles.sectionLink, { color: colors.primary }]}>{t.seeAll || "Ver todos"}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {goals.length === 0 ? (
+            <View style={[styles.emptyStateSmall, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.emptyTextSmall, { color: colors.mutedForeground }]}>{t.goalEmpty}</Text>
+            </View>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.goalsScroll}>
+              {goals.map((goal) => {
+                const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+                return (
+                  <TouchableOpacity 
+                    key={goal.id} 
+                    style={[styles.goalCardMini, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    onPress={() => router.push("/(tabs)/goals")}
+                  >
+                    <View style={styles.goalCardMiniHeader}>
+                      <Text style={[styles.goalCardMiniTitle, { color: colors.foreground }]} numberOfLines={1}>{goal.title}</Text>
+                      <Text style={[styles.goalCardMiniPerc, { color: colors.primary }]}>{progress.toFixed(0)}%</Text>
+                    </View>
+                    <View style={[styles.goalCardMiniTrack, { backgroundColor: colors.border }]}>
+                      <View style={[styles.goalCardMiniFill, { width: `${progress}%`, backgroundColor: colors.primary }]} />
+                    </View>
+                    <Text style={[styles.goalCardMiniValue, { color: colors.mutedForeground }]}>
+                      {format(goal.currentAmount)} / {format(goal.targetAmount)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           )}
         </View>
 
@@ -429,11 +465,72 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: 20,
+    marginBottom: 20,
     gap: 10,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
   },
   sectionTitle: {
     fontSize: 17,
     fontFamily: "Inter_600SemiBold",
+  },
+  sectionLink: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  goalsScroll: {
+    gap: 12,
+    paddingRight: 20,
+  },
+  goalCardMini: {
+    width: 200,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 8,
+  },
+  goalCardMiniHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
+  goalCardMiniTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+  goalCardMiniPerc: {
+    fontSize: 12,
+    fontFamily: "Outfit_700Bold",
+  },
+  goalCardMiniTrack: {
+    height: 4,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  goalCardMiniFill: {
+    height: "100%",
+    borderRadius: 2,
+  },
+  goalCardMiniValue: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+  },
+  emptyStateSmall: {
+    padding: 24,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyTextSmall: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
   },
   txList: { gap: 8 },
   emptyState: {
