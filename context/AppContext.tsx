@@ -309,9 +309,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           createdAt: data.created_at
         } : item));
       } else {
-        setGoals(prev => prev.filter(item => item.id !== tempId));
+        console.error("addGoal error:", error);
+        // If it's a "table not found" error, we keep it locally but log the warning
+        if (error?.code === 'PGRST116' || error?.message?.includes('relation "goals" does not exist')) {
+          console.warn("Table 'goals' not found in Supabase. Goal is local-only.");
+        } else {
+          setGoals(prev => prev.filter(item => item.id !== tempId));
+        }
       }
     } catch (e) {
+      console.error("addGoal exception:", e);
       setGoals(prev => prev.filter(item => item.id !== tempId));
     }
   }, [session]);
