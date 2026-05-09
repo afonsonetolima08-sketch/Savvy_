@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -23,7 +24,7 @@ const NEGATIVE_CARD_COLOR = "#dc2626";
 export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { transactions, profile, effectivePatrimony, goals } = useApp();
+  const { transactions, profile, effectivePatrimony, goals, updateProfile } = useApp();
   const { format, formatExact, convert } = useCurrency();
   const t = useT();
   const [showModal, setShowModal] = useState(false);
