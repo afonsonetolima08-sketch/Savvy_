@@ -82,7 +82,8 @@ export default function GoalsScreen() {
   };
 
   const handleAllocation = () => {
-    const amount = parseFloat(allocAmount);
+    const sanitizedAmount = allocAmount.replace(",", ".");
+    const amount = parseFloat(sanitizedAmount);
     if (isNaN(amount) || amount <= 0 || !isAllocating) return;
 
     if (amount > availableToAllocate) {
