@@ -89,6 +89,7 @@ interface AppContextValue {
   deleteGoal: (id: string) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
   convertAmount: (amount: number, toCurrency: string) => number;
+  toBaseAmount: (amount: number, fromCurrency: string) => number;
   isLoading: boolean;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<{ error: string | null }>;
@@ -347,9 +348,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const convertAmount = useCallback(
     (amount: number, toCurrency: string) => {
-      const fromRate = exchangeRates["EUR"] ?? 1;
+      const numAmount = Number(amount) || 0;
       const toRate = exchangeRates[toCurrency] ?? 1;
-      return (amount / fromRate) * toRate;
+      return numAmount * toRate;
+    },
+    [exchangeRates]
+  );
+
+  const toBaseAmount = useCallback(
+    (amount: number, fromCurrency: string) => {
+      const numAmount = Number(amount) || 0;
+      const fromRate = exchangeRates[fromCurrency] ?? 1;
+      return numAmount / fromRate;
     },
     [exchangeRates]
   );
@@ -390,6 +400,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deleteGoal,
         updateProfile,
         convertAmount,
+        toBaseAmount,
         isLoading,
         signOut,
         deleteAccount,

@@ -10,7 +10,7 @@ import { CURRENCY_SYMBOLS, formatCurrency } from "@/utils/finance";
  *   - currency           → ISO currency code
  */
 export function useCurrency() {
-  const { profile, convertAmount, exchangeRates } = useApp();
+  const { profile, convertAmount, toBaseAmount, exchangeRates } = useApp();
   const currency = profile.currency || "EUR";
   const symbol = CURRENCY_SYMBOLS[currency] || "€";
 
@@ -22,8 +22,7 @@ export function useCurrency() {
 
   /** Convert display currency amount → EUR (for saving to storage) */
   const toBase = (displayAmount: number): number => {
-    const rate = exchangeRates[currency] ?? 1;
-    return displayAmount / rate;
+    return toBaseAmount(displayAmount, currency);
   };
 
   /** Convert EUR amount to display currency number (without formatting) */

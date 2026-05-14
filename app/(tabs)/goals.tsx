@@ -28,7 +28,7 @@ export default function GoalsScreen() {
   const colors = useColors();
   const t = useT();
   const insets = useSafeAreaInsets();
-  const { currency, convert } = useCurrency();
+  const { currency, convert, toBase, format } = useCurrency();
   const { effectivePatrimony, goals, addGoal, updateGoal, deleteGoal } = useApp();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -38,14 +38,18 @@ export default function GoalsScreen() {
   const [allocAmount, setAllocAmount] = useState("");
 
   const totalAllocated = useMemo(() => goals.reduce((s, g) => s + g.currentAmount, 0), [goals]);
-  const availableToAllocate = useMemo(() => convert(effectivePatrimony) - totalAllocated, [effectivePatrimony, totalAllocated, convert]);
+  const availableToAllocate = useMemo(() => effectivePatrimony - totalAllocated, [effectivePatrimony, totalAllocated]);
 
   const handleAddGoal = () => {
     const target = parseFloat(newGoal.target);
     const current = parseFloat(newGoal.current || "0");
     
     if (!newGoal.title || isNaN(target)) return;
-    if (current > availableToAllocate) {
+    
+    const eurTarget = toBase(target);
+    const eurCurrent = toBase(current);
+
+    if (eurCurrent > availableToAllocate) {
       Alert.alert("Saldo Insuficiente", "Não podes alocar mais do que o teu património disponível.");
       return;
     }
@@ -54,14 +58,14 @@ export default function GoalsScreen() {
       updateGoal({
         ...editingGoal,
         title: newGoal.title,
-        targetAmount: target,
-        currentAmount: current,
+        targetAmount: eurTarget,
+        currentAmount: eurCurrent,
       });
     } else {
       addGoal({
         title: newGoal.title,
-        targetAmount: target,
-        currentAmount: current,
+        targetAmount: eurTarget,
+        currentAmount: eurCurrent,
       });
     }
 
@@ -81,7 +85,7 @@ export default function GoalsScreen() {
 
     const goal = goals.find(g => g.id === isAllocating);
     if (goal) {
-      updateGoal({ ...goal, currentAmount: goal.currentAmount + amount });
+      updateGoal({ ...goal, currentAmount: goal.currentAmount + toBase(amount) });
     }
 
     setIsAllocating(null);
@@ -116,8 +120,8 @@ export default function GoalsScreen() {
                 setEditingGoal(item);
                 setNewGoal({ 
                   title: item.title, 
-                  target: item.targetAmount.toString(), 
-                  current: item.currentAmount.toString() 
+                  target: convert(item.targetAmount).toString(), 
+                  current: convert(item.currentAmount).toString() 
                 });
                 setIsModalVisible(true);
               }} 
@@ -135,13 +139,13 @@ export default function GoalsScreen() {
           <View>
             <Text style={[styles.amountLabel, { color: colors.mutedForeground }]}>{t.goalCurrent}</Text>
             <Text style={[styles.amountValue, { color: colors.primary }]}>
-              {formatCurrency(item.currentAmount, currency, true)}
+              {format(item.currentAmount)}
             </Text>
           </View>
           <View style={styles.alignRight}>
             <Text style={[styles.amountLabel, { color: colors.mutedForeground }]}>{t.goalTarget}</Text>
             <Text style={[styles.amountValue, { color: colors.foreground }]}>
-              {formatCurrency(item.targetAmount, currency, true)}
+              {format(item.targetAmount)}
             </Text>
           </View>
         </View>
@@ -181,7 +185,7 @@ export default function GoalsScreen() {
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>PATRIMÓNIO LIVRE</Text>
               <Text style={[styles.summaryValue, { color: colors.foreground }]}>
-                {formatCurrency(availableToAllocate, currency, true)}
+                {format(availableToAllocate)}
               </Text>
             </View>
           </View>
@@ -256,7 +260,7 @@ export default function GoalsScreen() {
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setIsAllocating(null)} />
           <Animated.View entering={FadeInDown} style={[styles.modalContentSmall, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitleSmall, { color: colors.foreground }]}>Alocar Património</Text>
-            <Text style={[styles.modalSubtitleSmall, { color: colors.mutedForeground }]}>Disponível: {formatCurrency(availableToAllocate, currency, true)}</Text>
+            <Text style={[styles.modalSubtitleSmall, { color: colors.mutedForeground }]}>Disponível: {format(availableToAllocate)}</Text>
             <TextInput
               style={[styles.input, { color: colors.foreground, borderColor: colors.border, marginTop: 20 }]}
               placeholder="Montante a alocar..."
