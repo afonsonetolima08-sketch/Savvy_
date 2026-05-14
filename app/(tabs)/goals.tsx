@@ -47,7 +47,15 @@ export default function GoalsScreen() {
     const target = parseFloat(sanitizedTarget);
     const current = parseFloat(sanitizedCurrent);
     
-    if (!newGoal.title || isNaN(target)) return;
+    if (!newGoal.title) {
+      Alert.alert("Erro", "Por favor, insere um título para o objetivo.");
+      return;
+    }
+
+    if (isNaN(target) || target <= 0) {
+      Alert.alert("Erro", "Por favor, insere um valor de meta válido.");
+      return;
+    }
     
     const eurTarget = toBase(target);
     const eurCurrent = toBase(current);
