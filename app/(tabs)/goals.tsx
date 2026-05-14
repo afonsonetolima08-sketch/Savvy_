@@ -41,15 +41,22 @@ export default function GoalsScreen() {
   const availableToAllocate = useMemo(() => effectivePatrimony - totalAllocated, [effectivePatrimony, totalAllocated]);
 
   const handleAddGoal = () => {
-    const target = parseFloat(newGoal.target);
-    const current = parseFloat(newGoal.current || "0");
+    const sanitizedTarget = newGoal.target.replace(",", ".");
+    const sanitizedCurrent = (newGoal.current || "0").replace(",", ".");
+    
+    const target = parseFloat(sanitizedTarget);
+    const current = parseFloat(sanitizedCurrent);
     
     if (!newGoal.title || isNaN(target)) return;
     
     const eurTarget = toBase(target);
     const eurCurrent = toBase(current);
 
-    if (eurCurrent > availableToAllocate) {
+    // When editing, the "available" balance should include what was already allocated to THIS goal
+    const currentGoalBaseAlloc = editingGoal ? editingGoal.currentAmount : 0;
+    const effectiveLimit = availableToAllocate + currentGoalBaseAlloc;
+
+    if (eurCurrent > effectiveLimit) {
       Alert.alert("Saldo Insuficiente", "Não podes alocar mais do que o teu património disponível.");
       return;
     }
