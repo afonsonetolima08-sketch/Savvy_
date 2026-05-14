@@ -249,11 +249,23 @@ export default function GoalsScreen() {
               <View style={styles.row}>
                 <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
                   <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>{t.goalCurrent}</Text>
-                  <TextInput style={[styles.input, { color: colors.foreground, borderColor: colors.border }]} placeholder="0" keyboardType="numeric" value={newGoal.current} onChangeText={(text) => setNewGoal(p => ({ ...p, current: text }))} />
+                  <TextInput 
+                    style={[styles.input, { color: colors.foreground, borderColor: colors.border }]} 
+                    placeholder="0" 
+                    keyboardType="decimal-pad" 
+                    value={newGoal.current} 
+                    onChangeText={(text) => setNewGoal(p => ({ ...p, current: text }))} 
+                  />
                 </View>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>{t.goalTarget}</Text>
-                  <TextInput style={[styles.input, { color: colors.foreground, borderColor: colors.border }]} placeholder="1000" keyboardType="numeric" value={newGoal.target} onChangeText={(text) => setNewGoal(p => ({ ...p, target: text }))} />
+                  <TextInput 
+                    style={[styles.input, { color: colors.foreground, borderColor: colors.border }]} 
+                    placeholder="1000" 
+                    keyboardType="decimal-pad" 
+                    value={newGoal.target} 
+                    onChangeText={(text) => setNewGoal(p => ({ ...p, target: text }))} 
+                  />
                 </View>
               </View>
               <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary }]} onPress={handleAddGoal}><Text style={styles.submitBtnText}>{t.goalSave}</Text></TouchableOpacity>
@@ -273,7 +285,7 @@ export default function GoalsScreen() {
               style={[styles.input, { color: colors.foreground, borderColor: colors.border, marginTop: 20 }]}
               placeholder="Montante a alocar..."
               placeholderTextColor={colors.mutedForeground}
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
               autoFocus
               value={allocAmount}
               onChangeText={setAllocAmount}
